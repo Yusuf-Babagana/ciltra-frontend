@@ -3,7 +3,7 @@
 import { authStorage } from "./auth"
 import type { User, AuthResponse } from "./types"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://51.77.149.67/api"
 
 async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = authStorage.getAccessToken()
