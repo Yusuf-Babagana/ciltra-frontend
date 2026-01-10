@@ -14,7 +14,7 @@ export default function HomePage() {
         <section className="container py-20 md:py-28">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-              Ciltra Certification Portal — Professional Excellence
+              Professional Certification Platform
             </h1>
             <p className="mt-6 text-pretty text-lg text-muted-foreground leading-relaxed sm:text-xl">
               Advance your career with industry-recognized certifications. Take secure online exams and earn verified
