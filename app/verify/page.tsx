@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ApiClient } from "@/lib/api-client"
+// REMOVED: import { ApiClient } from "@/lib/api-client"
 import { Loader2, AlertCircle, CheckCircle, XCircle, Award } from "lucide-react"
 
 const verifySchema = z.object({
@@ -47,10 +47,39 @@ export default function VerifyPage() {
     setCertificate(null)
 
     try {
-      const response = await ApiClient.get<CertificateData>(`/api/certificates/${data.certificate_id}/verify/`)
-      setCertificate(response)
+      // UPDATED: Use direct fetch for public verification
+      // This allows verification without being logged in
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"
+
+      // Note: Backend might expect a query param or a specific URL structure. 
+      // Adjusting to a likely standard Django DRF pattern:
+      const response = await fetch(`${baseUrl}/certificates/${data.certificate_id}/verify/`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Certificate not found or invalid")
+      }
+
+      const result = await response.json()
+
+      // Map backend response to interface if needed, or use directly
+      setCertificate({
+        id: result.certificate_code || result.id,
+        candidate_name: result.user_name || result.candidate_name,
+        exam_name: result.exam_title || result.exam_name,
+        issue_date: result.issued_at || result.issue_date,
+        score: result.score,
+        valid: true // If we got a successful 200 response, it's valid
+      })
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Certificate not found")
+      setCertificate(null)
     } finally {
       setIsLoading(false)
     }

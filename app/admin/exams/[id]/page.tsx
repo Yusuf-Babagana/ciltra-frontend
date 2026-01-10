@@ -1,5 +1,6 @@
 "use client"
 
+// ... existing imports ...
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { adminAPI } from "@/lib/api"
@@ -13,9 +14,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, ArrowLeft, Save, Plus, Trash2, Search } from "lucide-react"
+import { Loader2, ArrowLeft, Save, Plus, Trash2, Search, Link as LinkIcon } from "lucide-react" // Added LinkIcon
 
 export default function EditExamPage() {
+    // ... keep existing state ...
     const params = useParams()
     const router = useRouter()
     const { toast } = useToast()
@@ -23,14 +25,11 @@ export default function EditExamPage() {
 
     const [isLoading, setIsLoading] = useState(true)
     const [exam, setExam] = useState<any>(null)
-    const [questions, setQuestions] = useState<any[]>([]) // Questions IN this exam
-    const [bankQuestions, setBankQuestions] = useState<any[]>([]) // Questions available in bank
-    
-    // Form State
+    const [questions, setQuestions] = useState<any[]>([])
+    const [bankQuestions, setBankQuestions] = useState<any[]>([])
+
     const [formData, setFormData] = useState<any>({})
     const [isSaving, setIsSaving] = useState(false)
-    
-    // Question Picker State
     const [isPickerOpen, setIsPickerOpen] = useState(false)
     const [selectedBankIds, setSelectedBankIds] = useState<number[]>([])
     const [searchQuery, setSearchQuery] = useState("")
@@ -42,36 +41,30 @@ export default function EditExamPage() {
     const fetchData = async () => {
         setIsLoading(true)
         try {
-            // 1. Get Exam Details
             const allExams = await adminAPI.getExams()
             const foundExam = allExams.find((e: any) => e.id.toString() === examId)
-            
+
             if (!foundExam) {
                 toast({ title: "Error", description: "Exam not found", variant: "destructive" })
                 router.push("/admin/exams")
                 return
             }
-            
+
             setExam(foundExam)
+            // 1. LOAD PAYMENT LINK HERE
             setFormData({
                 title: foundExam.title,
                 description: foundExam.description,
                 category: foundExam.category,
                 price: foundExam.price,
+                payment_link: foundExam.payment_link || "", // <--- Add this
                 duration_minutes: foundExam.duration_minutes,
                 passing_score: foundExam.passing_score
             })
 
-            // 2. Get All Questions (to separate assigned vs bank)
             const allQuestions = await adminAPI.getQuestions()
-            
-            // Filter: Questions assigned to THIS exam
             const assigned = allQuestions.filter((q: any) => q.exam === parseInt(examId))
             setQuestions(assigned)
-
-            // Filter: Questions that are unassigned (Bank)
-            // Note: If you want to reuse questions, you might change logic here. 
-            // For now, we assume a question belongs to only ONE exam or NO exam (Bank).
             const bank = allQuestions.filter((q: any) => q.exam === null)
             setBankQuestions(bank)
 
@@ -95,6 +88,7 @@ export default function EditExamPage() {
         }
     }
 
+    // ... keep handleAddQuestions, handleRemoveQuestion, toggleQuestionSelection ...
     const handleAddQuestions = async () => {
         if (selectedBankIds.length === 0) return
         try {
@@ -102,14 +96,14 @@ export default function EditExamPage() {
             toast({ title: "Added", description: `${selectedBankIds.length} questions added to exam.` })
             setIsPickerOpen(false)
             setSelectedBankIds([])
-            fetchData() // Refresh lists
+            fetchData()
         } catch (error: any) {
             toast({ title: "Error", description: "Failed to add questions", variant: "destructive" })
         }
     }
 
     const handleRemoveQuestion = async (qId: number) => {
-        if(!confirm("Remove this question from the exam? It will return to the question bank.")) return
+        if (!confirm("Remove this question from the exam? It will return to the question bank.")) return
         try {
             await adminAPI.removeQuestionsFromExam(examId, [qId])
             fetchData()
@@ -119,12 +113,12 @@ export default function EditExamPage() {
     }
 
     const toggleQuestionSelection = (id: number) => {
-        setSelectedBankIds(prev => 
+        setSelectedBankIds(prev =>
             prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
         )
     }
 
-    const filteredBankQuestions = bankQuestions.filter(q => 
+    const filteredBankQuestions = bankQuestions.filter(q =>
         q.question_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
         q.category.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -148,7 +142,7 @@ export default function EditExamPage() {
                     <TabsTrigger value="settings">Exam Settings</TabsTrigger>
                     <TabsTrigger value="questions">Questions ({questions.length})</TabsTrigger>
                 </TabsList>
-                
+
                 {/* --- TAB 1: SETTINGS --- */}
                 <TabsContent value="settings">
                     <Card>
@@ -157,25 +151,47 @@ export default function EditExamPage() {
                             <form onSubmit={handleSaveSettings} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>Title</Label>
-                                    <Input value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />
+                                    <Input value={formData.title || ''} onChange={e => setFormData({ ...formData, title: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Description</Label>
-                                    <Textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3}/>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Price (NGN)</Label>
-                                        <Input type="number" value={formData.price || 0} onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Duration (Min)</Label>
-                                        <Input type="number" value={formData.duration_minutes || 60} onChange={e => setFormData({...formData, duration_minutes: parseInt(e.target.value)})} />
-                                    </div>
+                                    <Textarea value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={3} />
                                 </div>
                                 <div className="space-y-2">
+                                    <Label>Category</Label>
+                                    <Input value={formData.category || ''} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+                                </div>
+
+                                {/* 2. ADD PAYMENT LINK INPUT HERE */}
+                                <div className="bg-slate-50 p-4 rounded-lg border space-y-4">
+                                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                                        <LinkIcon className="w-4 h-4" /> Payment Details
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Price (NGN)</Label>
+                                            <Input type="number" value={formData.price || 0} onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Paystack Product Link</Label>
+                                            <Input
+                                                placeholder="https://paystack.shop/..."
+                                                value={formData.payment_link || ''}
+                                                onChange={e => setFormData({ ...formData, payment_link: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Duration (Min)</Label>
+                                        <Input type="number" value={formData.duration_minutes || 60} onChange={e => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })} />
+                                    </div>
+                                    <div className="space-y-2">
                                         <Label>Passing Score (%)</Label>
-                                        <Input type="number" value={formData.passing_score || 50} onChange={e => setFormData({...formData, passing_score: parseInt(e.target.value)})} />
+                                        <Input type="number" value={formData.passing_score || 50} onChange={e => setFormData({ ...formData, passing_score: parseInt(e.target.value) })} />
+                                    </div>
                                 </div>
                                 <Button type="submit" disabled={isSaving} className="w-full">
                                     {isSaving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />}
@@ -186,8 +202,9 @@ export default function EditExamPage() {
                     </Card>
                 </TabsContent>
 
-                {/* --- TAB 2: QUESTIONS --- */}
+                {/* --- TAB 2: QUESTIONS (UNCHANGED) --- */}
                 <TabsContent value="questions" className="space-y-4">
+                    {/* ... (Keep your existing Questions Tab content exactly as it was) ... */}
                     <div className="flex justify-between items-center bg-slate-100 p-4 rounded-lg">
                         <div>
                             <h3 className="font-semibold">Assigned Questions</h3>
@@ -204,9 +221,9 @@ export default function EditExamPage() {
                                 <div className="space-y-4 py-2">
                                     <div className="relative">
                                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                            placeholder="Filter questions..." 
-                                            className="pl-8" 
+                                        <Input
+                                            placeholder="Filter questions..."
+                                            className="pl-8"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                         />

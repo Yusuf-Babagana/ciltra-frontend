@@ -6,20 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { ApiClient } from "@/lib/api-client"
-import { authStorage } from "@/lib/auth"
+import { studentAPI } from "@/lib/api" // UPDATED: Use studentAPI
 import { Loader2, Clock, Award, Search, DollarSign } from "lucide-react"
 import Link from "next/link"
 
+// UPDATED: Interface matching Backend Serializer (ExamListSerializer)
 interface Exam {
   id: number
   title: string
   description: string
-  category: string
+  category_name?: string // Backend returns this in list view
+  category?: string
   duration_minutes: number
-  passing_score: number
+  pass_mark_percentage?: number // Backend field name
+  passing_score?: number
   price: number
-  total_questions: number
+  total_questions?: number // Might be undefined in list view
 }
 
 export default function ExamsPage() {
@@ -33,8 +35,9 @@ export default function ExamsPage() {
 
   const fetchExams = async () => {
     try {
-      const token = authStorage.getAccessToken()
-      const data = await ApiClient.get<Exam[]>("/api/exams/", token || undefined)
+      // UPDATED: Use studentAPI.getExams()
+      // Note: token handling is now done automatically inside the API client
+      const data = await studentAPI.getExams()
       setExams(data)
     } catch (err) {
       console.error("[v0] Failed to fetch exams:", err)
@@ -47,7 +50,7 @@ export default function ExamsPage() {
     (exam) =>
       exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exam.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      exam.category.toLowerCase().includes(searchTerm.toLowerCase()),
+      (exam.category_name || exam.category || "").toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   return (
@@ -91,7 +94,8 @@ export default function ExamsPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="line-clamp-2">{exam.title}</CardTitle>
-                    <Badge variant="secondary">{exam.category}</Badge>
+                    {/* UPDATED: Handle category_name from backend */}
+                    <Badge variant="secondary">{exam.category_name || exam.category || "General"}</Badge>
                   </div>
                   <CardDescription className="line-clamp-2">{exam.description}</CardDescription>
                 </CardHeader>
@@ -101,15 +105,20 @@ export default function ExamsPage() {
                       <Clock className="h-4 w-4" />
                       <span>{exam.duration_minutes} minutes</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Award className="h-4 w-4" />
-                      <span>
-                        {exam.total_questions} questions · {exam.passing_score}% to pass
-                      </span>
-                    </div>
+                    {/* Only show questions/pass score if data exists (List view might exclude them) */}
+                    {(exam.total_questions || exam.pass_mark_percentage) && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Award className="h-4 w-4" />
+                        <span>
+                          {exam.total_questions ? `${exam.total_questions} questions · ` : ""}
+                          {exam.pass_mark_percentage || exam.passing_score}% to pass
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 font-semibold text-foreground">
                       <DollarSign className="h-4 w-4" />
-                      <span>${exam.price}</span>
+                      {/* Handle 0 price as Free */}
+                      <span>{Number(exam.price) === 0 ? "Free" : `$${exam.price}`}</span>
                     </div>
                   </div>
                 </CardContent>

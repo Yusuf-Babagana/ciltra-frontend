@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ApiClient } from "@/lib/api-client"
-import { authStorage } from "@/lib/auth"
-import { Loader2, Users, FileText, Award, DollarSign, TrendingUp, Activity } from "lucide-react"
+import { adminAPI } from "@/lib/api" // Updated import
+import { Loader2, Users, FileText, Award, DollarSign, TrendingUp, Activity, ClipboardList } from "lucide-react"
 
 interface DashboardStats {
   total_candidates: number
@@ -13,6 +12,7 @@ interface DashboardStats {
   total_revenue: number
   recent_exams_taken: number
   pass_rate: number
+  pending_grading: number // Added this since it is available from backend
 }
 
 export default function AdminDashboardPage() {
@@ -25,9 +25,20 @@ export default function AdminDashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
-      const token = authStorage.getAccessToken()
-      const data = await ApiClient.get<DashboardStats>("/api/admin/dashboard/", token!)
-      setStats(data)
+      // Use the standardized adminAPI
+      const data = await adminAPI.getDashboardStats()
+
+      // Map the backend response to the dashboard state
+      setStats({
+        total_candidates: data.total_candidates || 0,
+        total_exams: data.total_exams || 0,
+        total_certificates: data.issued_certificates || 0,
+        pending_grading: data.pending_grading || 0,
+        // Defaulting these to 0 as they are not yet in the backend API
+        total_revenue: 0,
+        recent_exams_taken: 0,
+        pass_rate: 0
+      })
     } catch (err) {
       console.error("[v0] Failed to fetch dashboard stats:", err)
     } finally {
@@ -51,7 +62,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Candidates</CardTitle>
@@ -76,6 +87,17 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pending Grading</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.pending_grading || 0}</div>
+            <p className="mt-1 text-xs text-muted-foreground">Requires attention</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Certificates Issued</CardTitle>
             <Award className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -85,6 +107,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
+        {/* These cards display 0 for now until backend revenue logic is implemented */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -133,19 +156,20 @@ export default function AdminDashboardPage() {
               <FileText className="h-5 w-5 text-primary" />
               <span className="font-medium">Create Exam</span>
             </a>
+            {/* Updated link to point to Exam list for questions management */}
             <a
-              href="/admin/questions/new"
+              href="/admin/exams"
               className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
             >
               <Activity className="h-5 w-5 text-primary" />
-              <span className="font-medium">Add Question</span>
+              <span className="font-medium">Manage Questions</span>
             </a>
             <a
               href="/admin/candidates"
               className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
             >
               <Users className="h-5 w-5 text-primary" />
-              <span className="font-medium">View Candidates</span>
+              <span className="font-medium">View Students</span>
             </a>
             <a
               href="/admin/reports"

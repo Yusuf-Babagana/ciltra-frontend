@@ -36,8 +36,9 @@ async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promis
             authStorage.removeTokens()
             if (typeof window !== 'undefined') window.location.href = '/login'
         }
-        
+
         const errorData = await response.json().catch(() => ({}))
+        console.error("API Error Response:", response.status, errorData) // Added logging
         const errorMessage = errorData.detail || errorData.message || errorData.error || "An error occurred"
         throw new Error(errorMessage)
     }
@@ -53,7 +54,7 @@ export const authAPI = {
         apiClient("/auth/login/", {
             method: "POST",
             body: JSON.stringify({
-                username: credentials.email, 
+                username: credentials.email,
                 email: credentials.email,
                 password: credentials.password
             }),
@@ -71,11 +72,11 @@ export const adminAPI = {
 
     // --- User Management (CRUD) ---
     getUsers: () => apiClient<any[]>("/users/"),
-    createUser: (userData: any) => 
+    createUser: (userData: any) =>
         apiClient("/users/", { method: "POST", body: JSON.stringify(userData) }),
-    updateUser: (id: number, userData: any) => 
+    updateUser: (id: number, userData: any) =>
         apiClient(`/users/${id}/`, { method: "PATCH", body: JSON.stringify(userData) }),
-    deleteUser: (id: number) => 
+    deleteUser: (id: number) =>
         apiClient(`/users/${id}/`, { method: "DELETE" }),
 
     // --- Exam Management ---
@@ -102,23 +103,23 @@ export const adminAPI = {
 
     // --- Question Management ---
     getQuestions: () => apiClient<any[]>("/questions/"),
-    
+
     createQuestion: (questionData: any) =>
         apiClient("/questions/", { method: "POST", body: JSON.stringify(questionData) }),
-        
+
     addOptionsToQuestion: (questionId: number, options: { text: string, is_correct: boolean }[]) =>
         apiClient(`/questions/${questionId}/add_options/`, {
             method: "POST",
             body: JSON.stringify({ options })
         }),
 
-    deleteQuestion: (id: number) => 
+    deleteQuestion: (id: number) =>
         apiClient(`/questions/${id}/`, { method: "DELETE" }),
 
-    uploadQuestions: (formData: FormData) => 
+    uploadQuestions: (formData: FormData) =>
         apiClient("/questions/bulk-upload/", {
             method: "POST",
-            body: formData, 
+            body: formData,
         }),
 
     // --- Grading ---
@@ -146,7 +147,7 @@ export const studentAPI = {
     getExams: () => apiClient<any[]>("/exams/"),
 
     // 2. Start Exam: Creates a session and fetches questions
-    startExam: (examId: string | number) => 
+    startExam: (examId: string | number) =>
         apiClient<{
             id: number; // session_id
             questions: any[];
@@ -156,7 +157,7 @@ export const studentAPI = {
 
     // 3. Submit Exam: Sends all answers
     submitExam: (sessionId: number, answers: { question_id: number; selected_option_id?: number; text_answer?: string }[]) =>
-        apiClient(`/exams/session/${sessionId}/submit/`, { 
+        apiClient(`/exams/session/${sessionId}/submit/`, {
             method: "POST",
             body: JSON.stringify({ answers })
         }),
@@ -169,6 +170,76 @@ export const studentAPI = {
 
 
     // ADD THIS FUNCTION
-    getSession: (sessionId: string | number) => 
+    getSession: (sessionId: string | number) =>
         apiClient<any>(`/exams/session/${sessionId}/`),
+
+    getSessionResult: (sessionId: number) => apiClient(`/assessments/result/${sessionId}/`),
+
+
+    getExamHistory: () => apiClient('/assessments/history/'),
+
+    updateProfile: (data: any) => apiClient('/auth/users/me/', { method: 'PATCH', body: JSON.stringify(data) }),
+
+
+    // Add to studentAPI:
+    downloadCertificate: async (certId: string) => {
+        const token = authStorage.getAccessToken();
+        const res = await fetch(`${API_BASE_URL}/certificates/download/${certId}/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Failed");
+        return res.blob();
+    },
+
+    downloadResult: async (sessionId: string) => {
+        const token = authStorage.getAccessToken();
+        const res = await fetch(`${API_BASE_URL}/assessments/result/${sessionId}/download/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            console.error("Download failed:", res.status, await res.text());
+            throw new Error(`Failed: ${res.status}`);
+        }
+        return res.blob();
+    },
+}
+
+export const examinerAPI = {
+    // 1. Get List of Scripts to Grade
+    // Fetches all finished sessions that haven't been graded yet
+    getPendingReviews: () => apiClient<any[]>("/admin/grading/pending/"),
+
+    // 2. Get Single Session Details (UPDATED)
+    // Points to the NEW backend view that allows Examiners to see answers + correct options
+    getSession: (sessionId: string | number) =>
+        apiClient<any>(`/admin/grading/session/${sessionId}/`),
+
+    // 3. Submit the Grade
+    // Sends the manual scores and comments back to the server
+    submitGrades: (sessionId: string | number, grades: any[]) =>
+        apiClient(`/admin/grading/submit/${sessionId}/`, {
+            method: "POST",
+            body: JSON.stringify({ grades })
+        }),
+
+    // ADD THIS NEW FUNCTION:
+    getStats: () => apiClient<{ pending: number; graded: number; total: number }>("/examiner/stats/"),
+
+    getGradedHistory: () => apiClient<any[]>("/examiner/history/"),
+
+
+}
+
+export const userAPI = {
+    getProfile: () => apiClient<User>("/profile/"),
+    updateProfile: (data: Partial<User>) =>
+        apiClient("/profile/", { method: "PATCH", body: JSON.stringify(data) }),
+}
+
+export const paymentAPI = {
+    verifyPayment: (reference: string, examId: number) =>
+        apiClient("/payments/verify/", {
+            method: "POST",
+            body: JSON.stringify({ reference, exam_id: examId })
+        }),
 }

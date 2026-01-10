@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { adminAPI } from "@/lib/api" 
+import { adminAPI } from "@/lib/api"
 import { Loader2, AlertCircle, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast" 
+import { useToast } from "@/components/ui/use-toast"
 
+// 1. UPDATE SCHEMA: Add payment_link
 const examSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
@@ -23,6 +24,8 @@ const examSchema = z.object({
   duration_minutes: z.number().min(15, "Duration must be at least 15 minutes"),
   passing_score: z.number().min(1).max(100, "Passing score must be between 1 and 100"),
   price: z.number().min(0, "Price must be a positive number"),
+  // Allow valid URL or empty string
+  payment_link: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 })
 
 type ExamForm = z.infer<typeof examSchema>
@@ -43,6 +46,7 @@ export default function NewExamPage() {
       duration_minutes: 60,
       passing_score: 70,
       price: 0,
+      payment_link: "", // Default empty
     },
   })
 
@@ -51,17 +55,12 @@ export default function NewExamPage() {
     setError("")
 
     try {
-      // 1. Create the Exam
-      // The API returns the created object, which includes the new 'id'
       const newExam: any = await adminAPI.createExam(data)
-      
       toast({ title: "Success", description: "Exam created. You can now add questions." })
-      
-      // 2. Redirect to the EDIT page immediately so user can add questions
+
       if (newExam && newExam.id) {
-        router.push(`/admin/exams/${newExam.id}`) 
+        router.push(`/admin/exams/${newExam.id}`)
       } else {
-        // Fallback if ID is missing for some reason
         router.push("/admin/exams")
       }
 
@@ -123,7 +122,7 @@ export default function NewExamPage() {
               {errors.category && <p className="text-sm text-destructive">{errors.category.message}</p>}
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="duration_minutes">Duration (minutes)</Label>
                 <Input id="duration_minutes" type="number" {...register("duration_minutes", { valueAsNumber: true })} />
@@ -135,11 +134,24 @@ export default function NewExamPage() {
                 <Input id="passing_score" type="number" {...register("passing_score", { valueAsNumber: true })} />
                 {errors.passing_score && <p className="text-sm text-destructive">{errors.passing_score.message}</p>}
               </div>
+            </div>
 
+            {/* 2. ADD THIS NEW SECTION FOR PAYMENT */}
+            <div className="grid gap-6 sm:grid-cols-2 bg-slate-50 p-4 rounded-lg border">
               <div className="space-y-2">
                 <Label htmlFor="price">Price (NGN)</Label>
                 <Input id="price" type="number" step="0.01" {...register("price", { valueAsNumber: true })} />
                 {errors.price && <p className="text-sm text-destructive">{errors.price.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment_link">Paystack Product Link</Label>
+                <Input
+                  id="payment_link"
+                  placeholder="https://paystack.shop/pay/..."
+                  {...register("payment_link")}
+                />
+                {errors.payment_link && <p className="text-sm text-destructive">{errors.payment_link.message}</p>}
               </div>
             </div>
 

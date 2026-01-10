@@ -2,69 +2,74 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { studentAPI } from "@/lib/api"
-import { Clock, Banknote, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Clock, Banknote, Loader2 } from "lucide-react"
 
 export default function ExamCatalogPage() {
   const router = useRouter()
   const [exams, setExams] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchExams = async () => {
       try {
         const data = await studentAPI.getExams()
-        setExams(data as any[])
+        setExams(data)
       } catch (error) {
         console.error("Failed to load exams")
       } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
     }
     fetchExams()
   }, [])
 
-  const handleStartExam = async (examId: number) => {
-    try {
-      // In a real app, check payment status first. 
-      // For now, we jump straight to starting (Free mode or Mock Payment)
-      const session = await studentAPI.startExam(examId)
-      router.push(`/student/exam/${session.id}`)
-    } catch (error) {
-      alert("Failed to start exam. Please try again.")
-    }
-  }
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>
 
   return (
-    <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-6">Professional Certifications</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="container mx-auto py-10 px-6">
+      <h1 className="text-3xl font-bold mb-2">Professional Certifications</h1>
+      <p className="text-muted-foreground mb-8">Select an exam to begin your certification journey.</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {exams.map((exam) => (
-          <Card key={exam.id} className="flex flex-col">
+          <Card key={exam.id} className="flex flex-col hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
-                <Badge variant="secondary">{exam.category}</Badge>
-                {exam.is_active && <Badge className="bg-green-600">Active</Badge>}
+                <Badge variant="outline" className="mb-2 bg-indigo-50 text-indigo-700 border-indigo-200">
+                  Certification
+                </Badge>
+                {/* Price Tag */}
+                <Badge className={Number(exam.price) === 0 ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-900"}>
+                  {Number(exam.price) === 0 ? "FREE" : `₦${exam.price}`}
+                </Badge>
               </div>
-              <CardTitle className="mt-2">{exam.title}</CardTitle>
-              <CardDescription className="line-clamp-2">{exam.description}</CardDescription>
+              <CardTitle className="text-xl">{exam.title}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 space-y-4">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Clock className="w-4 h-4 mr-2" /> {exam.duration_minutes} Minutes
-              </div>
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Banknote className="w-4 h-4 mr-2" /> 
-                {exam.price === 0 ? "Free" : `NGN ${exam.price.toLocaleString()}`}
+
+            <CardContent className="flex-1">
+              <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                {exam.description || "No description provided for this certification exam."}
+              </p>
+
+              <div className="flex items-center gap-4 text-sm font-medium text-zinc-600">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {exam.duration_minutes} Minutes
+                </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => handleStartExam(exam.id)}>
-                Start Certification <ArrowRight className="w-4 h-4 ml-2" />
+
+            <CardFooter className="pt-4 border-t bg-slate-50/50">
+              <Button
+                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                // ✅ FIX: Send to the Lobby/Payment Page
+                onClick={() => router.push(`/student/exam/${exam.id}`)}
+              >
+                Start Certification
               </Button>
             </CardFooter>
           </Card>

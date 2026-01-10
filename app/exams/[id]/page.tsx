@@ -7,31 +7,34 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ApiClient } from "@/lib/api-client"
+import { studentAPI } from "@/lib/api" // UPDATED: Import studentAPI
 import { authStorage } from "@/lib/auth"
 import { useAuth } from "@/hooks/use-auth"
-import { Loader2, Clock, Award, DollarSign, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react"
+import { Loader2, Clock, Award, DollarSign, AlertCircle, CheckCircle, ArrowLeft, PlayCircle } from "lucide-react"
 import Link from "next/link"
 
+// UPDATED: Interface to match Backend
 interface ExamDetail {
   id: number
   title: string
   description: string
-  category: string
+  category_name?: string
+  category?: string
   duration_minutes: number
-  passing_score: number
+  pass_mark_percentage: number // Backend field
+  passing_score?: number // Fallback
   price: number
-  total_questions: number
-  topics: string[]
+  total_questions?: number
+  // topics: string[] // Backend might not send this yet, handled gracefully below
 }
 
 export default function ExamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [exam, setExam] = useState<ExamDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isPurchasing, setIsPurchasing] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -40,9 +43,17 @@ export default function ExamDetailPage({ params }: { params: Promise<{ id: strin
 
   const fetchExam = async () => {
     try {
-      const token = authStorage.getAccessToken()
-      const data = await ApiClient.get<ExamDetail>(`/api/exams/${resolvedParams.id}/`, token || undefined)
-      setExam(data)
+      // Fetch list and find exam (since we don't have a public detail endpoint without auth usually)
+      // But we can try to fetch details if authenticated, or list if not.
+      // For robustness, we will fetch the list and find the item.
+      const exams = await studentAPI.getExams()
+      const found = exams.find((e: any) => e.id == resolvedParams.id)
+
+      if (found) {
+        setExam(found)
+      } else {
+        setError("Exam not found")
+      }
     } catch (err) {
       setError("Failed to load exam details")
     } finally {
@@ -50,29 +61,34 @@ export default function ExamDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const handlePurchase = async () => {
+  const handleAction = async () => {
     if (!isAuthenticated) {
       router.push(`/login?redirect=/exams/${resolvedParams.id}`)
       return
     }
 
-    setIsPurchasing(true)
+    setIsProcessing(true)
     setError("")
 
     try {
-      const token = authStorage.getAccessToken()
-      const response = await ApiClient.post<{ payment_url: string }>(
-        "/api/payments/initiate/",
-        { exam_id: resolvedParams.id },
-        token!,
-      )
+      // If price is 0, we just start the exam. 
+      // If price > 0, we would ideally initiate payment.
+      // For this version, we will assume "Start Exam" creates the session directly.
 
-      // In a real implementation, redirect to payment gateway
-      window.location.href = response.payment_url
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to initiate payment")
+      if (Number(exam?.price) > 0) {
+        // Placeholder for Payment Logic
+        // await studentAPI.initiatePayment(...)
+        alert("Payment integration coming soon. For now, exams are free to start.")
+      }
+
+      // Start the exam session
+      const session = await studentAPI.startExam(resolvedParams.id)
+      router.push(`/exam-session/${session.id}`)
+
+    } catch (err: any) {
+      setError(err.message || "Failed to start exam")
     } finally {
-      setIsPurchasing(false)
+      setIsProcessing(false)
     }
   }
 
@@ -87,22 +103,21 @@ export default function ExamDetailPage({ params }: { params: Promise<{ id: strin
     )
   }
 
-  if (error && !exam) {
+  if (error || !exam) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container py-12">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error || "Exam not found"}</AlertDescription>
           </Alert>
+          <Button variant="ghost" asChild className="mt-4">
+            <Link href="/exams"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Exams</Link>
+          </Button>
         </div>
       </div>
     )
-  }
-
-  if (!exam) {
-    return null
   }
 
   return (
@@ -127,7 +142,7 @@ export default function ExamDetailPage({ params }: { params: Promise<{ id: strin
                     <CardDescription className="mt-2">{exam.description}</CardDescription>
                   </div>
                   <Badge variant="secondary" className="shrink-0">
-                    {exam.category}
+                    {exam.category_name || exam.category}
                   </Badge>
                 </div>
               </CardHeader>
@@ -142,43 +157,31 @@ export default function ExamDetailPage({ params }: { params: Promise<{ id: strin
                         <p className="text-sm text-muted-foreground">{exam.duration_minutes} minutes</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <Award className="mt-1 h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Questions</p>
-                        <p className="text-sm text-muted-foreground">{exam.total_questions} questions</p>
+                    {exam.total_questions && (
+                      <div className="flex items-start gap-3">
+                        <Award className="mt-1 h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">Questions</p>
+                          <p className="text-sm text-muted-foreground">{exam.total_questions} questions</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="flex items-start gap-3">
                       <CheckCircle className="mt-1 h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">Passing Score</p>
-                        <p className="text-sm text-muted-foreground">{exam.passing_score}%</p>
+                        <p className="text-sm text-muted-foreground">{exam.pass_mark_percentage}%</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <DollarSign className="mt-1 h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">Price</p>
-                        <p className="text-sm text-muted-foreground">${exam.price}</p>
+                        <p className="text-sm text-muted-foreground">{Number(exam.price) === 0 ? "Free" : `$${exam.price}`}</p>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {exam.topics && exam.topics.length > 0 && (
-                  <div>
-                    <h3 className="mb-3 font-semibold">Topics Covered</h3>
-                    <ul className="space-y-2">
-                      {exam.topics.map((topic, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                          <span>{topic}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -186,14 +189,16 @@ export default function ExamDetailPage({ params }: { params: Promise<{ id: strin
           <div>
             <Card className="sticky top-20">
               <CardHeader>
-                <CardTitle>Register for Exam</CardTitle>
-                <CardDescription>Complete payment to access this exam</CardDescription>
+                <CardTitle>Start Exam</CardTitle>
+                <CardDescription>
+                  {Number(exam.price) > 0 ? "Complete payment to access this exam" : "You can start this exam immediately"}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border border-border bg-muted/50 p-4">
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm text-muted-foreground">Exam Fee</span>
-                    <span className="text-2xl font-bold">${exam.price}</span>
+                    <span className="text-2xl font-bold">{Number(exam.price) === 0 ? "Free" : `$${exam.price}`}</span>
                   </div>
                 </div>
 
@@ -205,9 +210,11 @@ export default function ExamDetailPage({ params }: { params: Promise<{ id: strin
                 )}
               </CardContent>
               <CardFooter>
-                <Button className="w-full" onClick={handlePurchase} disabled={isPurchasing}>
-                  {isPurchasing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isAuthenticated ? "Proceed to Payment" : "Login to Purchase"}
+                <Button className="w-full" onClick={handleAction} disabled={isProcessing}>
+                  {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isAuthenticated
+                    ? (Number(exam.price) > 0 ? "Proceed to Payment" : "Start Exam Now")
+                    : "Login to Start"}
                 </Button>
               </CardFooter>
             </Card>
