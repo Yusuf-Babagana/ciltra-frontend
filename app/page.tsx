@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
@@ -6,19 +7,20 @@ import { GraduationCap, Shield, Award, Clock, CheckCircle, TrendingUp, Users, Fi
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <main>
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="container py-20 md:py-28">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-              Professional Certification Platform
-            </h1>
+          <div className="mx-auto max-w-3xl text-center flex flex-col items-center">
+
+
+            <h5 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              Certified Professional Translator (CPT) Certification Platform
+            </h5>
             <p className="mt-6 text-pretty text-lg text-muted-foreground leading-relaxed sm:text-xl">
-              Advance your career with industry-recognized certifications. Take secure online exams and earn verified
-              credentials trusted by employers worldwide.
+              Earn internationally verifiable Translator and Credentials Evaluator certifications through secure exams, real-world practical translation tasks, and institutional verification.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Button size="lg" asChild className="h-12 px-8">
@@ -62,9 +64,9 @@ export default function HomePage() {
         {/* Features Section */}
         <section className="container py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">Why Choose CertifyPro</h2>
+            <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">Why Choose CILTRA CertifyPro</h2>
             <p className="mt-4 text-pretty text-muted-foreground leading-relaxed">
-              Industry-leading certification platform trusted by professionals and organizations worldwide
+              The official certification platform of the Chartered Institute of Language and Translation (CILTRA), dedicated to the assessment and certification of Professional Translators and Credentials Evaluators.
             </p>
           </div>
 
@@ -167,7 +169,7 @@ export default function HomePage() {
       <footer className="border-t border-border py-8">
         <div className="container">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-sm text-muted-foreground">© 2025 CertifyPro. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2025 Chartered Institute of Language and Translation (CILTRA). All rights reserved. CILTRA CertifyPro™ is the official CPT certification and verification platform of CILTRA.</p>
             <div className="flex gap-6">
               <Link href="/verify" className="text-sm text-muted-foreground hover:text-foreground">
                 Verify Certificate

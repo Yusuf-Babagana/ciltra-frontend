@@ -5,6 +5,14 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'scontent-los2-1.xx.fbcdn.net',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
 }
 
