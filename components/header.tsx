@@ -42,14 +42,14 @@ export function Header() {
         <nav className="flex items-center gap-6">
           <Link
             href="/exams"
-            className={`text-sm font-medium transition-colors hover:text-primary ${pathname === "/exams" ? "text-foreground" : "text-muted-foreground"
+            className={`text-sm font-medium transition-colors hover:text-blue-800 ${pathname === "/exams" ? "text-blue-700 font-bold" : "text-blue-600 dark:text-blue-400"
               }`}
           >
             Examinations
           </Link>
           <Link
             href="/verify"
-            className={`text-sm font-medium transition-colors hover:text-primary ${pathname === "/verify" ? "text-foreground" : "text-muted-foreground"
+            className={`text-sm font-medium transition-colors hover:text-blue-800 ${pathname === "/verify" ? "text-blue-700 font-bold" : "text-blue-600 dark:text-blue-400"
               }`}
           >
             Verify Certificate
@@ -58,7 +58,7 @@ export function Header() {
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
+                <Button variant="ghost" size="sm" className="gap-2 text-blue-600 dark:text-blue-400">
                   <User className="h-4 w-4" />
                   <span className="hidden sm:inline">{user?.first_name || user?.email}</span>
                 </Button>
@@ -87,7 +87,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 hover:bg-blue-50" asChild>
                 <Link href="/login">Login</Link>
               </Button>
               <Button size="sm" asChild>
