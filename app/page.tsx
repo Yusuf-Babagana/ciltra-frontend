@@ -12,14 +12,29 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="container py-20 md:py-28">
-          <div className="mx-auto max-w-3xl text-center flex flex-col items-center">
+        <section className="relative container py-20 md:py-28 overflow-hidden">
 
+          {/* FIX 1: Background Layer */}
+          {/* Removed '-z-10'. Positioned absolutely. Increased opacity to 10. */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none select-none">
+            <div className="relative w-[500px] h-[500px] md:w-[700px] md:h-[700px]">
+              <Image
+                src="https://scontent-los2-1.xx.fbcdn.net/v/t39.30808-6/505180011_1214676324036208_4156852350019206314_n.jpg?_nc_cat=100&_nc_cb=99be929b-f3b7c874&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeEbdWqux3AQI3CUmCp32IJSR1yJARlnLNdHXIkBGWcs10t3_56DSa6WvNiY7XpWnImurHmM3XGNDoIS52MdVx1g&_nc_ohc=tz5COX9Bte8Q7kNvwG0ZK5t&_nc_oc=AdnafrQwkK-fvoSuZhwdlFLrglXdQ0yqaGbv93BB4GJ4M633DNQghqIJczYq3iM6m182qzI14p4ogoAEV4-HYupt&_nc_zt=23&_nc_ht=scontent-los2-1.xx&_nc_gid=_US9hIcVh5d1-7ymG4LfZQ&oh=00_Afrk0Dxn9KV6iORGOaDYBBz_5wadL7xnDqs3jJ_0vTGSOQ&oe=696B028A"
+                alt="CILTRA Background"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
 
-            <h5 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+          {/* FIX 2: Content Layer */}
+          {/* Added 'relative z-10' to ensure text sits ON TOP of the image */}
+          <div className="relative z-10 mx-auto max-w-3xl text-center flex flex-col items-center">
+            <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               Certified Professional Translator (CPT) Certification Platform
-            </h5>
-            <p className="mt-6 text-pretty text-lg text-muted-foreground leading-relaxed sm:text-xl">
+            </h1>
+            <p className="mt-6 text-pretty text-lg text-muted-foreground leading-relaxed sm:text-xl bg-background/50 backdrop-blur-sm rounded-lg p-2">
               Earn internationally verifiable Translator and Credentials Evaluator certifications through secure exams, real-world practical translation tasks, and institutional verification.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
