@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { adminAPI } from "@/lib/api" // Updated import
+import { adminAPI } from "@/lib/api"
 import { Loader2, Users, FileText, Award, DollarSign, TrendingUp, Activity, ClipboardList } from "lucide-react"
 
 interface DashboardStats {
@@ -12,7 +12,7 @@ interface DashboardStats {
   total_revenue: number
   recent_exams_taken: number
   pass_rate: number
-  pending_grading: number // Added this since it is available from backend
+  pending_grading: number
 }
 
 export default function AdminDashboardPage() {
@@ -25,10 +25,8 @@ export default function AdminDashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
-      // Use the standardized adminAPI
       const data = await adminAPI.getDashboardStats()
 
-      // Map the backend response to the dashboard state
       setStats({
         total_candidates: data.total_candidates || 0,
         total_exams: data.total_exams || 0,
@@ -40,7 +38,7 @@ export default function AdminDashboardPage() {
         pass_rate: 0
       })
     } catch (err) {
-      console.error("[v0] Failed to fetch dashboard stats:", err)
+      console.error("Failed to fetch dashboard stats:", err)
     } finally {
       setIsLoading(false)
     }
@@ -111,10 +109,12 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            {/* Kept DollarSign icon as generic money indicator, but changed the text symbol below */}
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats?.total_revenue || 0}</div>
+            {/* UPDATED: Changed $ to ₦ */}
+            <div className="text-2xl font-bold">₦{stats?.total_revenue || 0}</div>
             <p className="mt-1 text-xs text-muted-foreground">From exam registrations</p>
           </CardContent>
         </Card>
@@ -156,7 +156,7 @@ export default function AdminDashboardPage() {
               <FileText className="h-5 w-5 text-primary" />
               <span className="font-medium">Create Exam</span>
             </a>
-            {/* Updated link to point to Exam list for questions management */}
+
             <a
               href="/admin/exams"
               className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-accent"

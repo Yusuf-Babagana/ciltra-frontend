@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
-import { adminAPI } from "@/lib/api" // Ensure this is updated
+import { adminAPI } from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface DashboardStats {
@@ -28,8 +28,7 @@ interface DashboardStats {
 export default function AdminDashboardPage() {
     const router = useRouter()
     const { user, isLoading: authLoading } = useAuth()
-    
-    // Initialize with zeros
+
     const [stats, setStats] = useState<DashboardStats>({
         total_exams: 0,
         total_candidates: 0,
@@ -39,7 +38,6 @@ export default function AdminDashboardPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        // Auth check
         if (!authLoading && user?.role !== 'admin' && !user?.is_staff) {
             router.push('/admin/login')
             return
@@ -47,7 +45,6 @@ export default function AdminDashboardPage() {
 
         const fetchStats = async () => {
             try {
-                // Call the real endpoint
                 const data = await adminAPI.getDashboardStats()
                 setStats(data)
             } catch (error) {
@@ -140,10 +137,9 @@ export default function AdminDashboardPage() {
                 </Card>
             </div>
 
-            {/* Module Navigation (Keep existing code below) */}
+            {/* Module Navigation */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                 {/* ... (Keep the rest of your navigation cards exactly as they were) ... */}
-                 {/* Exam Management */}
+                {/* Exam Management */}
                 <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push('/admin/exams')}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -193,13 +189,15 @@ export default function AdminDashboardPage() {
                     </CardHeader>
                 </Card>
 
-                {/* Reports (Placeholder for Future Expansion) */}
-                <Card className="opacity-75">
+                {/* Reports - ENABLED */}
+                <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push('/admin/reports')}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5 text-muted-foreground" /> Analytics & Reports
+                            {/* Changed icon color from muted to primary */}
+                            <TrendingUp className="h-5 w-5 text-primary" /> Analytics & Reports
                         </CardTitle>
-                        <CardDescription>Coming Soon: Detailed performance analytics.</CardDescription>
+                        {/* Updated Description */}
+                        <CardDescription>View detailed performance analytics and trends.</CardDescription>
                     </CardHeader>
                 </Card>
             </div>

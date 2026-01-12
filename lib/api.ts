@@ -139,6 +139,31 @@ export const adminAPI = {
         pending_grading: number;
         issued_certificates: number;
     }>("/admin/stats/"),
+
+    // ADD THIS:
+    getCertificates: () => apiClient<any[]>("/admin/certificates/"),
+
+    downloadCertificate: async (url: string) => {
+        const token = authStorage.getAccessToken();
+        let downloadUrl = url;
+        if (!url.startsWith('http')) {
+            try {
+                const urlObj = new URL(API_BASE_URL);
+                downloadUrl = `${urlObj.origin}${url.startsWith('/') ? '' : '/'}${url}`;
+            } catch (e) {
+                console.warn("Could not parse API_BASE_URL for download", e);
+            }
+        }
+
+        const res = await fetch(downloadUrl, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+
+        if (!res.ok) throw new Error("Failed to download certificate");
+        return res.blob();
+    },
+
+    getAnalytics: () => apiClient<any>("/admin/analytics/"),
 }
 
 export const studentAPI = {
