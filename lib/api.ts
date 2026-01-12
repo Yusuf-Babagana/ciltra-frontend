@@ -7,7 +7,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://51.77.149.6
 
 async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = authStorage.getAccessToken()
-
     // Check if we are sending a file (FormData)
     const isFormData = options.body instanceof FormData;
 
