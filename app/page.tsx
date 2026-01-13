@@ -52,7 +52,7 @@ export default function HomePage() {
             </div>
 
             <h1 className="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-6xl md:text-7xl mb-6">
-              Certified Professional Translator (CPT) Certification Platform <span className="text-primary relative inline-block">
+              Data Analysis Classes<span className="text-primary relative inline-block">
                 -
                 {/* Underline decoration */}
                 <svg className="absolute w-full h-3 -bottom-1 left-0 text-yellow-400 opacity-60" viewBox="0 0 100 10" preserveAspectRatio="none">
