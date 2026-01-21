@@ -10,8 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-// REMOVED: import { ApiClient } from "@/lib/api-client"
 import { Loader2, AlertCircle, CheckCircle, XCircle, Award } from "lucide-react"
+// IMPORT THE API HELPER
+import { publicAPI } from "@/lib/api"
 
 const verifySchema = z.object({
   certificate_id: z.string().min(1, "Certificate ID is required"),
@@ -20,12 +21,12 @@ const verifySchema = z.object({
 type VerifyForm = z.infer<typeof verifySchema>
 
 interface CertificateData {
-  id: string
-  candidate_name: string
-  exam_name: string
-  issue_date: string
+  certificate_code: string
+  student_name: string
+  exam_title: string
+  issued_at: string
   score: number
-  valid: boolean
+  is_valid: boolean
 }
 
 export default function VerifyPage() {
@@ -47,38 +48,15 @@ export default function VerifyPage() {
     setCertificate(null)
 
     try {
-      // UPDATED: Use direct fetch for public verification
-      // This allows verification without being logged in
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"
+      // FIX: Use the shared API helper which has the correct URL structure
+      // URL: .../api/certificates/verify/CODE/
+      const result = await publicAPI.verifyCertificate(data.certificate_id.trim())
 
-      // Note: Backend might expect a query param or a specific URL structure. 
-      // Adjusting to a likely standard Django DRF pattern:
-      const response = await fetch(`${baseUrl}/certificates/${data.certificate_id}/verify/`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error("Certificate not found or invalid")
-      }
-
-      const result = await response.json()
-
-      // Map backend response to interface if needed, or use directly
-      setCertificate({
-        id: result.certificate_code || result.id,
-        candidate_name: result.user_name || result.candidate_name,
-        exam_name: result.exam_title || result.exam_name,
-        issue_date: result.issued_at || result.issue_date,
-        score: result.score,
-        valid: true // If we got a successful 200 response, it's valid
-      })
+      setCertificate(result)
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Certificate not found")
+      // If API throws error (404), handle it here
+      setError("Certificate not found or invalid. Please check the ID.")
       setCertificate(null)
     } finally {
       setIsLoading(false)
@@ -90,7 +68,7 @@ export default function VerifyPage() {
       <Header />
 
       {/* Background Image */}
-      <div className="absolute inset-0 z-0 top-20"> {/* Offset for header */}
+      <div className="absolute inset-0 z-0 top-20">
         <img
           src="https://scontent-los2-1.xx.fbcdn.net/v/t39.30808-6/505180011_1214676324036208_4156852350019206314_n.jpg?_nc_cat=100&_nc_cb=99be929b-f3b7c874&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeEbdWqux3AQI3CUmCp32IJSR1yJARlnLNdHXIkBGWcs10t3_56DSa6WvNiY7XpWnImurHmM3XGNDoIS52MdVx1g&_nc_ohc=tz5COX9Bte8Q7kNvwG0ZK5t&_nc_oc=AdnafrQwkK-fvoSuZhwdlFLrglXdQ0yqaGbv93BB4GJ4M633DNQghqIJczYq3iM6m182qzI14p4ogoAEV4-HYupt&_nc_zt=23&_nc_ht=scontent-los2-1.xx&_nc_gid=_US9hIcVh5d1-7ymG4LfZQ&oh=00_Afrk0Dxn9KV6iORGOaDYBBz_5wadL7xnDqs3jJ_0vTGSOQ&oe=696B028A"
           alt="Background"
@@ -122,7 +100,7 @@ export default function VerifyPage() {
                   <Label htmlFor="certificate_id">Certificate ID</Label>
                   <Input
                     id="certificate_id"
-                    placeholder="CERT-2025-XXXXX"
+                    placeholder="CERT-XXXX-XXXX"
                     {...register("certificate_id")}
                     disabled={isLoading}
                   />
@@ -142,44 +120,35 @@ export default function VerifyPage() {
                 </Alert>
               )}
 
-              {certificate && (
+              {certificate && certificate.is_valid && (
                 <div className="mt-6">
-                  {certificate.valid ? (
-                    <Alert className="border-green-200 bg-green-50 dark:bg-green-950">
-                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <AlertDescription className="text-green-900 dark:text-green-100">
-                        <strong>Valid Certificate</strong>
-                        <div className="mt-4 space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="font-medium">Candidate:</span>
-                            <span>{certificate.candidate_name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium">Examination:</span>
-                            <span>{certificate.exam_name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium">Issue Date:</span>
-                            <span>{new Date(certificate.issue_date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium">Score:</span>
-                            <span>{certificate.score}%</span>
-                          </div>
+                  <Alert className="border-green-200 bg-green-50 dark:bg-green-950">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <AlertDescription className="text-green-900 dark:text-green-100">
+                      <strong>Valid Certificate</strong>
+                      <div className="mt-4 space-y-2 text-sm">
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="font-medium">Candidate:</span>
+                          <span>{certificate.student_name}</span>
                         </div>
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Invalid Certificate</strong>
-                        <p className="mt-2 text-sm">
-                          This certificate could not be verified. Please check the ID and try again.
-                        </p>
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="font-medium">Examination:</span>
+                          <span>{certificate.exam_title}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="font-medium">Issue Date:</span>
+                          <span>{new Date(certificate.issued_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between pt-2">
+                          <span className="font-medium">Score:</span>
+                          <span className="font-bold">{certificate.score}%</span>
+                        </div>
+                        <div className="text-xs text-center mt-4 opacity-75">
+                          ID: {certificate.certificate_code}
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
                 </div>
               )}
             </CardContent>

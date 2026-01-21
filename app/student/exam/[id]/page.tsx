@@ -29,7 +29,7 @@ export default function ExamLobbyPage() {
   const [hasPaid, setHasPaid] = useState(false)
 
   // REPLACE THIS WITH YOUR REAL KEY
-  const PUBLIC_KEY = ""
+  const PUBLIC_KEY = "pk_test_ffd91b2e7cc6c88a030f82fa5e7407892ec5ae3b"
 
   useEffect(() => {
     const fetchExam = async () => {

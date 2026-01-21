@@ -131,6 +131,26 @@ export const adminAPI = {
 
     // --- Certificates ---
     getAllCertificates: () => apiClient("/admin/certificates/"),
+    getCertificates: () => apiClient<any[]>("/admin/certificates/"),
+
+    downloadCertificate: async (sessionId: string | number) => {
+        const token = authStorage.getAccessToken();
+
+        const response = await fetch(`${API_BASE_URL}/certificates/download/${sessionId}/`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Download Error:", errorText);
+            throw new Error("Failed to download certificate");
+        }
+
+        return response.blob();
+    },
 
     // --- Dashboard Stats ---
     getDashboardStats: () => apiClient<{
@@ -140,30 +160,79 @@ export const adminAPI = {
         issued_certificates: number;
     }>("/admin/stats/"),
 
-    // ADD THIS:
-    getCertificates: () => apiClient<any[]>("/admin/certificates/"),
+    // --- Analytics ---
+    getAnalytics: () => apiClient<any>("/admin/analytics/"),
 
-    downloadCertificate: async (url: string) => {
-        const token = authStorage.getAccessToken();
-        let downloadUrl = url;
-        if (!url.startsWith('http')) {
-            try {
-                const urlObj = new URL(API_BASE_URL);
-                downloadUrl = `${urlObj.origin}${url.startsWith('/') ? '' : '/'}${url}`;
-            } catch (e) {
-                console.warn("Could not parse API_BASE_URL for download", e);
-            }
-        }
+    // --- Platform Settings ---
+    getSettings: () => apiClient<any>("/core/settings/"),
 
-        const res = await fetch(downloadUrl, {
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
+    updateSettings: (settingsData: any) =>
+        apiClient("/core/settings/", {
+            method: "PUT",
+            body: settingsData instanceof FormData ? settingsData : JSON.stringify(settingsData)
+        }),
 
-        if (!res.ok) throw new Error("Failed to download certificate");
-        return res.blob();
+    // --- Audit Logs ---
+    getAuditLogs: () => apiClient<any[]>("/core/audit-logs/"),
+
+    // --- Grading History ---
+    getGradedHistory: () => apiClient<any[]>("/admin/grading/history/"),
+
+    // --- Exam Assignment ---
+    assignExamToStudent: (examId: string | number, email: string) =>
+        apiClient(`/exams/${examId}/assign-student/`, {
+            method: "POST",
+            body: JSON.stringify({ email })
+        }),
+
+    // --- Reset Student Attempt ---
+    resetSession: (sessionId: number) =>
+        apiClient(`/assessments/admin/session/${sessionId}/reset/`, {
+            method: "DELETE"
+        }),
+
+    exportExamResults: async (examId: number) => {
+        const token = authStorage.getAccessToken()
+        const res = await fetch(`${API_BASE_URL}/assessments/admin/export/exam/${examId}/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!res.ok) throw new Error("Export failed")
+        return res.blob()
+    },
+    revokeCertificate: (id: number, reason: string) =>
+        apiClient(`/certificates/revoke/${id}/`, {
+            method: "POST",
+            body: JSON.stringify({ reason })
+        }),
+
+    // --- NEW: Download Result Slip (PDF) ---
+    downloadResultPdf: async (sessionId: number) => {
+        const token = authStorage.getAccessToken()
+        // Ensure you use your actual API URL variable
+        const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://51.77.149.67/api"
+
+        const res = await fetch(`${BASE}/assessments/result/${sessionId}/download/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (!res.ok) throw new Error("Download failed")
+        return res.blob()
     },
 
-    getAnalytics: () => apiClient<any>("/admin/analytics/"),
+
+    // 2. Get Single Session Detail (Questions + Answers) -> THIS FIXES THE BUTTON
+    getGradingSession: async (sessionId: number) => {
+        const token = authStorage.getAccessToken()
+        const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://51.77.149.67/api"
+        // Matches the URL we just added above
+        const res = await fetch(`${BASE}/assessments/grading/session/${sessionId}/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!res.ok) throw new Error("Failed to load session details")
+        return res.json()
+    },
+
+
 }
 
 export const studentAPI = {
@@ -192,20 +261,20 @@ export const studentAPI = {
     // 5. Get Certificates
     getCertificates: () => apiClient<any[]>("/certificates/"),
 
-
-    // ADD THIS FUNCTION
+    // 6. Get Session Details
     getSession: (sessionId: string | number) =>
         apiClient<any>(`/exams/session/${sessionId}/`),
 
+    // 7. Get Session Result
     getSessionResult: (sessionId: number) => apiClient(`/assessments/result/${sessionId}/`),
 
-
+    // 8. Get Exam History
     getExamHistory: () => apiClient('/assessments/history/'),
 
+    // 9. Update Profile
     updateProfile: (data: any) => apiClient('/auth/users/me/', { method: 'PATCH', body: JSON.stringify(data) }),
 
-
-    // Add to studentAPI:
+    // 10. Download Certificate
     downloadCertificate: async (certId: string) => {
         const token = authStorage.getAccessToken();
         const res = await fetch(`${API_BASE_URL}/certificates/download/${certId}/`, {
@@ -215,6 +284,7 @@ export const studentAPI = {
         return res.blob();
     },
 
+    // 11. Download Result
     downloadResult: async (sessionId: string) => {
         const token = authStorage.getAccessToken();
         const res = await fetch(`${API_BASE_URL}/assessments/result/${sessionId}/download/`, {
@@ -230,28 +300,24 @@ export const studentAPI = {
 
 export const examinerAPI = {
     // 1. Get List of Scripts to Grade
-    // Fetches all finished sessions that haven't been graded yet
     getPendingReviews: () => apiClient<any[]>("/admin/grading/pending/"),
 
-    // 2. Get Single Session Details (UPDATED)
-    // Points to the NEW backend view that allows Examiners to see answers + correct options
+    // 2. Get Single Session Details
     getSession: (sessionId: string | number) =>
         apiClient<any>(`/admin/grading/session/${sessionId}/`),
 
     // 3. Submit the Grade
-    // Sends the manual scores and comments back to the server
     submitGrades: (sessionId: string | number, grades: any[]) =>
         apiClient(`/admin/grading/submit/${sessionId}/`, {
             method: "POST",
             body: JSON.stringify({ grades })
         }),
 
-    // ADD THIS NEW FUNCTION:
+    // 4. Get Examiner Stats
     getStats: () => apiClient<{ pending: number; graded: number; total: number }>("/examiner/stats/"),
 
+    // 5. Get Graded History
     getGradedHistory: () => apiClient<any[]>("/examiner/history/"),
-
-
 }
 
 export const userAPI = {
@@ -266,4 +332,8 @@ export const paymentAPI = {
             method: "POST",
             body: JSON.stringify({ reference, exam_id: examId })
         }),
+}
+export const publicAPI = {
+    // Check if a certificate code is valid (No login required)
+    verifyCertificate: (code: string) => apiClient<any>(`/certificates/verify/${code}/`)
 }
