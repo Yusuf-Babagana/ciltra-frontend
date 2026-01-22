@@ -39,7 +39,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Plus, MoreHorizontal, Pencil, Trash, Shuffle, Search, Loader2, Clock, BookOpen } from "lucide-react"
+import { Plus, MoreHorizontal, Pencil, Trash, Shuffle, Search, Loader2, Clock, BookOpen, ListChecks } from "lucide-react"
 import Link from "next/link"
 
 const examSchema = z.object({
@@ -108,7 +108,7 @@ export default function ExamsPage() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure?")) return
+    if (!confirm("Are you sure? This will delete all associated questions.")) return
     try {
       await adminAPI.deleteExam(id)
       toast.success("Exam deleted")
@@ -154,14 +154,14 @@ export default function ExamsPage() {
 
       <main className="flex-1 container mx-auto py-10 px-4">
         {!isAdmin ? (
-          /* --- PUBLIC VISITOR / CANDIDATE GRID --- */
+          /* --- CANDIDATE VIEW: Clean Grid --- */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredExams.map((exam) => (
               <Card key={exam.id} className="flex flex-col hover:shadow-xl transition-all duration-300 border-slate-200 group overflow-hidden bg-white">
                 <div className="h-2 bg-blue-600 w-full" />
                 <CardHeader>
                   <div className="flex justify-between items-start mb-2">
-                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50">Certification</Badge>
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700">Certification</Badge>
                     <span className="font-bold text-xl text-emerald-600">
                       {exam.price > 0 ? `₦${Number(exam.price).toLocaleString()}` : "FREE"}
                     </span>
@@ -170,7 +170,7 @@ export default function ExamsPage() {
                 </CardHeader>
                 <CardContent className="flex-1">
                   <p className="text-slate-600 leading-relaxed line-clamp-4 mb-6">
-                    {exam.description || "Take your next step in logistics professional certification."}
+                    {exam.description || "Join the professional certification program."}
                   </p>
                   <div className="flex items-center gap-6 text-sm font-semibold text-slate-500">
                     <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-blue-500" /> {exam.duration_minutes} Mins</div>
@@ -178,7 +178,7 @@ export default function ExamsPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="border-t bg-slate-50/80 p-6">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6 shadow-md" asChild>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6" asChild>
                     <Link href={isAuthenticated ? `/student/exam/${exam.id}` : "/login"}>
                       {exam.price > 0 ? "Enroll Now" : "Start Certification"}
                     </Link>
@@ -186,22 +186,16 @@ export default function ExamsPage() {
                 </CardFooter>
               </Card>
             ))}
-
-            {filteredExams.length === 0 && (
-              <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
-                <p className="text-slate-500 text-lg">No examinations are currently available.</p>
-              </div>
-            )}
           </div>
         ) : (
-          /* --- ADMIN MANAGEMENT TABLE --- */
+          /* --- ADMIN VIEW: Management Table --- */
           <div className="space-y-6">
             <div className="flex justify-between items-end">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">Exam Management</h1>
-                <p className="text-slate-500 mt-1">Configure and monitor platform examinations.</p>
+                <p className="text-slate-500 mt-1">Configure exams and question banks.</p>
               </div>
-              <Button onClick={() => { resetForm(); setIsDialogOpen(true) }} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => { resetForm(); setIsDialogOpen(true) }} className="bg-blue-600">
                 <Plus className="mr-2 h-4 w-4" /> New Examination
               </Button>
             </div>
@@ -212,7 +206,7 @@ export default function ExamsPage() {
                   <TableRow>
                     <TableHead className="w-[40%]">Title</TableHead>
                     <TableHead>Duration</TableHead>
-                    <TableHead>Pass Mark</TableHead>
+                    <TableHead>Price</TableHead>
                     <TableHead>Questions</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -224,16 +218,16 @@ export default function ExamsPage() {
                       <TableCell className="font-semibold text-slate-700">
                         {exam.title}
                         {exam.randomize_questions && (
-                          <Badge variant="outline" className="ml-2 text-[10px] uppercase bg-indigo-50 text-indigo-700 border-indigo-200">
+                          <Badge variant="outline" className="ml-2 text-[10px] uppercase bg-indigo-50 text-indigo-700">
                             <Shuffle className="h-3 w-3 mr-1" /> Randomized
                           </Badge>
                         )}
                       </TableCell>
                       <TableCell>{exam.duration_minutes}m</TableCell>
-                      <TableCell>{exam.pass_mark_percentage || exam.passing_score}%</TableCell>
+                      <TableCell>₦{Number(exam.price).toLocaleString()}</TableCell>
                       <TableCell>{exam.total_questions || 0}</TableCell>
                       <TableCell>
-                        <Badge variant={exam.is_active ? "default" : "secondary"} className={exam.is_active ? "bg-emerald-100 text-emerald-800" : ""}>
+                        <Badge variant={exam.is_active ? "default" : "secondary"}>
                           {exam.is_active ? "Live" : "Draft"}
                         </Badge>
                       </TableCell>
@@ -244,9 +238,19 @@ export default function ExamsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Manage</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(exam)}><Pencil className="mr-2 h-4 w-4" /> Edit Details</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(exam)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                            </DropdownMenuItem>
+                            {/* --- NEW ACTION: NAVIGATION TO QUESTIONS --- */}
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/exams/${exam.id}/questions`}>
+                                <ListChecks className="mr-2 h-4 w-4" /> Manage Questions
+                              </Link>
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(exam.id)} className="text-red-600 font-medium"><Trash className="mr-2 h-4 w-4" /> Delete Exam</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(exam.id)} className="text-red-600">
+                              <Trash className="mr-2 h-4 w-4" /> Delete Exam
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -259,7 +263,7 @@ export default function ExamsPage() {
         )}
       </main>
 
-      {/* --- CREATE / EDIT DIALOG --- */}
+      {/* --- FORM DIALOG --- */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -267,37 +271,37 @@ export default function ExamsPage() {
           </DialogHeader>
           <div className="grid gap-6 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title" className="font-bold">Exam Title</Label>
+              <Label htmlFor="title" className="font-bold text-sm">Exam Title</Label>
               <Input id="title" {...form.register("title")} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description" className="font-bold">Description</Label>
-              <Textarea id="description" {...form.register("description")} rows={4} />
+              <Label htmlFor="description" className="font-bold text-sm">Description</Label>
+              <Textarea id="description" {...form.register("description")} rows={3} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label className="font-bold">Duration (Minutes)</Label>
+                <Label className="font-bold text-sm">Duration (Mins)</Label>
                 <Input type="number" {...form.register("duration_minutes")} />
               </div>
               <div className="grid gap-2">
-                <Label className="font-bold">Pass Mark (%)</Label>
+                <Label className="font-bold text-sm">Pass Mark (%)</Label>
                 <Input type="number" {...form.register("pass_mark_percentage")} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label className="font-bold">Price (NGN)</Label>
+                <Label className="font-bold text-sm">Price (NGN)</Label>
                 <Input type="number" {...form.register("price")} />
               </div>
               <div className="flex flex-col justify-center gap-2">
-                <Label className="font-bold">Active Visibility</Label>
+                <Label className="font-bold text-sm">Active</Label>
                 <Switch checked={form.watch("is_active")} onCheckedChange={(c) => form.setValue("is_active", c)} />
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={form.handleSubmit(onSubmit)} className="bg-blue-600 px-8">Save</Button>
+            <Button onClick={form.handleSubmit(onSubmit)} className="bg-blue-600">Save Exam</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

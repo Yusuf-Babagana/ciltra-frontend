@@ -15,7 +15,8 @@ import {
   History,
   Settings,
   UserCog,
-  BarChart3
+  BarChart3,
+  Database // Added for Backups
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
@@ -80,10 +81,16 @@ export function AdminSidebar() {
       roles: ["admin"]
     },
     {
-      // --- FIXED PATH HERE ---
       href: "/admin/reports/audit",
       label: "Audit Logs",
       icon: History,
+      roles: ["admin"]
+    },
+    {
+      // --- NEW BACKUP LINK ---
+      href: "/admin/settings/backups",
+      label: "System Backups",
+      icon: Database,
       roles: ["admin"]
     },
     {
@@ -118,7 +125,7 @@ export function AdminSidebar() {
             href={link.href}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:text-white",
-              pathname.startsWith(link.href)
+              pathname === link.href || (pathname.startsWith(link.href) && link.href !== "/admin/dashboard")
                 ? "bg-indigo-600 text-white"
                 : "text-slate-400 hover:bg-slate-800"
             )}
@@ -131,7 +138,9 @@ export function AdminSidebar() {
 
       <div className="p-4 border-t border-slate-800 mt-auto">
         <div className="mb-4 px-2">
-          <p className="text-sm font-medium text-white">{user?.first_name} {user?.last_name}</p>
+          <p className="text-sm font-medium text-white truncate">
+            {user?.first_name} {user?.last_name}
+          </p>
           <p className="text-xs text-slate-500 truncate">{user?.email}</p>
         </div>
         <Button

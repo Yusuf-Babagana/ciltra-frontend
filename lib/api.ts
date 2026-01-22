@@ -7,8 +7,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://51.77.149.6
 
 async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = authStorage.getAccessToken()
+
     // Check if we are sending a file (FormData)
-    const isFormData = options.body instanceof FormData;
+    const isFormData = options.body instanceof FormData
 
     const headers: Record<string, string> = {
         // Only set JSON content type if it's NOT a file upload
@@ -17,323 +18,390 @@ async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promis
         ...(options.headers as Record<string, string>),
     }
 
+    // Remove Content-Type header for FormData (browser sets it automatically with boundary)
+    if (isFormData) {
+        delete headers["Content-Type"]
+    }
+
     const config: RequestInit = {
         ...options,
         headers,
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
 
-    // Handle 204 No Content (Delete operations)
-    if (response.status === 204) {
-        return {} as T
-    }
-
-    if (!response.ok) {
-        // Handle 401 Unauthorized globally
-        if (response.status === 401) {
-            authStorage.removeTokens()
-            if (typeof window !== 'undefined') window.location.href = '/login'
+        // Handle 204 No Content (Delete operations)
+        if (response.status === 204) {
+            return {} as T
         }
 
-        const errorData = await response.json().catch(() => ({}))
-        console.error("API Error Response:", response.status, errorData) // Added logging
-        const errorMessage = errorData.detail || errorData.message || errorData.error || "An error occurred"
-        throw new Error(errorMessage)
-    }
+        if (!response.ok) {
+            // Handle 401 Unauthorized globally
+            if (response.status === 401) {
+                authStorage.removeTokens()
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/login'
+                }
+                throw new Error("Session expired. Please login again.")
+            }
 
-    return response.json()
+            // Try to parse error response
+            let errorData: any = {}
+            try {
+                const text = await response.text()
+                errorData = text ? JSON.parse(text) : {}
+            } catch {
+                errorData = {}
+            }
+
+            console.error("API Error Response:", response.status, errorData)
+
+            const errorMessage = errorData.detail || errorData.message ||
+                errorData.error || `HTTP ${response.status}: ${response.statusText}`
+            throw new Error(errorMessage)
+        }
+
+        // Handle empty responses
+        const contentType = response.headers.get("content-type")
+        if (contentType && contentType.includes("application/json")) {
+            return response.json() as Promise<T>
+        } else if (contentType && contentType.includes("application/pdf")) {
+            // For PDF responses, return blob
+            return response.blob() as unknown as Promise<T>
+        } else {
+            return response.text() as unknown as Promise<T>
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error("API Request Failed:", error.message)
+            throw error
+        }
+        throw new Error("Network error or request failed")
+    }
 }
+
+// Create a GET helper
+const get = <T>(endpoint: string) => apiClient<T>(endpoint, { method: "GET" })
+
+// Create a POST helper
+const post = <T>(endpoint: string, data?: any, isFormData = false) => {
+    const body = isFormData ? data : data ? JSON.stringify(data) : undefined
+    return apiClient<T>(endpoint, {
+        method: "POST",
+        body,
+        headers: isFormData ? {} : undefined
+    })
+}
+
+// Create a PUT helper
+const put = <T>(endpoint: string, data?: any) =>
+    apiClient<T>(endpoint, {
+        method: "PUT",
+        body: data ? JSON.stringify(data) : undefined
+    })
+
+// Create a PATCH helper
+const patch = <T>(endpoint: string, data?: any) =>
+    apiClient<T>(endpoint, {
+        method: "PATCH",
+        body: data ? JSON.stringify(data) : undefined
+    })
+
+// Create a DELETE helper
+const del = <T>(endpoint: string) =>
+    apiClient<T>(endpoint, { method: "DELETE" })
 
 export const authAPI = {
     register: (userData: any): Promise<User> =>
-        apiClient("/auth/register/", { method: "POST", body: JSON.stringify(userData) }),
+        post<User>("/auth/register/", userData),
 
     login: (credentials: { email: string; password: string }): Promise<AuthResponse> =>
-        apiClient("/auth/login/", {
-            method: "POST",
-            body: JSON.stringify({
-                username: credentials.email,
-                email: credentials.email,
-                password: credentials.password
-            }),
+        post<AuthResponse>("/auth/login/", {
+            username: credentials.email,
+            email: credentials.email,
+            password: credentials.password
         }),
 
     logout: () => {
         authStorage.removeTokens()
-        if (typeof window !== "undefined") window.location.href = "/"
+        if (typeof window !== "undefined") {
+            window.location.href = "/"
+        }
     },
+
+    // Add refresh token if needed
+    refreshToken: (refreshToken: string): Promise<AuthResponse> =>
+        post<AuthResponse>("/auth/token/refresh/", { refresh: refreshToken }),
 }
 
 export const adminAPI = {
-    // --- Candidates ---
-    getCandidates: () => apiClient<any[]>("/admin/candidates/"),
+    // --- Dashboard Stats ---
+    getDashboardStats: () =>
+        get<{
+            total_exams: number;
+            total_candidates: number;
+            pending_grading: number;
+            issued_certificates: number;
+        }>("/admin/stats/"),
 
-    // --- User Management (CRUD) ---
-    getUsers: () => apiClient<any[]>("/users/"),
-    createUser: (userData: any) =>
-        apiClient("/users/", { method: "POST", body: JSON.stringify(userData) }),
-    updateUser: (id: number, userData: any) =>
-        apiClient(`/users/${id}/`, { method: "PATCH", body: JSON.stringify(userData) }),
-    deleteUser: (id: number) =>
-        apiClient(`/users/${id}/`, { method: "DELETE" }),
+    // --- User Management ---
+    getUsers: () => get<any[]>("/users/"),
+    createUser: (userData: any) => post<any>("/users/", userData),
+    updateUser: (id: number, userData: any) => patch<any>(`/users/${id}/`, userData),
+    deleteUser: (id: number) => del<any>(`/users/${id}/`),
+
+    // --- Candidates ---
+    getCandidates: () => get<any[]>("/admin/candidates/"),
 
     // --- Exam Management ---
-    getExams: () => apiClient<any[]>("/exams/"),
-    createExam: (examData: any) =>
-        apiClient("/exams/", { method: "POST", body: JSON.stringify(examData) }),
-    updateExam: (id: string | number, examData: any) =>
-        apiClient(`/exams/${id}/`, { method: "PUT", body: JSON.stringify(examData) }),
-    deleteExam: (id: string | number) =>
-        apiClient(`/exams/${id}/`, { method: "DELETE" }),
+    getExams: () => get<any[]>("/exams/"),
+    createExam: (examData: any) => post<any>("/exams/", examData),
+    updateExam: (id: string | number, examData: any) => put<any>(`/exams/${id}/`, examData),
+    deleteExam: (id: string | number) => del<any>(`/exams/${id}/`),
 
-    // --- NEW: Question Assignment ---
+    // --- Question Assignment ---
     assignQuestionsToExam: (examId: string | number, questionIds: number[]) =>
-        apiClient(`/exams/${examId}/assign-questions/`, {
-            method: "POST",
-            body: JSON.stringify({ question_ids: questionIds })
-        }),
+        post<any>(`/exams/${examId}/assign-questions/`, { question_ids: questionIds }),
 
     removeQuestionsFromExam: (examId: string | number, questionIds: number[]) =>
-        apiClient(`/exams/${examId}/remove-questions/`, {
-            method: "POST",
-            body: JSON.stringify({ question_ids: questionIds })
-        }),
+        post<any>(`/exams/${examId}/remove-questions/`, { question_ids: questionIds }),
 
     // --- Question Management ---
-    getQuestions: () => apiClient<any[]>("/questions/"),
-
-    createQuestion: (questionData: any) =>
-        apiClient("/questions/", { method: "POST", body: JSON.stringify(questionData) }),
+    getQuestions: () => get<any[]>("/questions/"),
+    createQuestion: (questionData: any) => post<any>("/questions/", questionData),
 
     addOptionsToQuestion: (questionId: number, options: { text: string, is_correct: boolean }[]) =>
-        apiClient(`/questions/${questionId}/add_options/`, {
-            method: "POST",
-            body: JSON.stringify({ options })
-        }),
+        post<any>(`/questions/${questionId}/add_options/`, { options }),
 
-    deleteQuestion: (id: number) =>
-        apiClient(`/questions/${id}/`, { method: "DELETE" }),
+    deleteQuestion: (id: number) => del<any>(`/questions/${id}/`),
 
     uploadQuestions: (formData: FormData) =>
-        apiClient("/questions/bulk-upload/", {
-            method: "POST",
-            body: formData,
-        }),
+        post<any>("/questions/bulk-upload/", formData, true),
 
     // --- Grading ---
-    getPendingGrading: () => apiClient<any[]>("/admin/grading/pending/"),
+    getPendingGrading: () => get<any[]>("/admin/grading/pending/"),
+
     submitGrades: (sessionId: string | number, grades: any[]) =>
-        apiClient(`/admin/grading/submit/${sessionId}/`, {
-            method: "POST",
-            body: JSON.stringify({ grades })
-        }),
+        post<any>(`/admin/grading/submit/${sessionId}/`, { grades }),
 
-    // --- Certificates ---
-    getAllCertificates: () => apiClient("/admin/certificates/"),
-    getCertificates: () => apiClient<any[]>("/admin/certificates/"),
-
-    downloadCertificate: async (sessionId: string | number) => {
-        const token = authStorage.getAccessToken();
-
-        const response = await fetch(`${API_BASE_URL}/certificates/download/${sessionId}/`, {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Download Error:", errorText);
-            throw new Error("Failed to download certificate");
-        }
-
-        return response.blob();
-    },
-
-    // --- Dashboard Stats ---
-    getDashboardStats: () => apiClient<{
-        total_exams: number;
-        total_candidates: number;
-        pending_grading: number;
-        issued_certificates: number;
-    }>("/admin/stats/"),
-
-    // --- Analytics ---
-    getAnalytics: () => apiClient<any>("/admin/analytics/"),
-
-    // --- Platform Settings ---
-    getSettings: () => apiClient<any>("/core/settings/"),
-
-    updateSettings: (settingsData: any) =>
-        apiClient("/core/settings/", {
-            method: "PUT",
-            body: settingsData instanceof FormData ? settingsData : JSON.stringify(settingsData)
-        }),
-
-    // --- Audit Logs ---
-    getAuditLogs: () => apiClient<any[]>("/core/audit-logs/"),
+    getGradingSession: (sessionId: number) =>
+        get<any>(`/assessments/grading/session/${sessionId}/`),
 
     // --- Grading History ---
-    getGradedHistory: () => apiClient<any[]>("/admin/grading/history/"),
+    getGradedHistory: () => get<any[]>("/admin/grading/history/"),
+
+    // --- Certificates ---
+    getAllCertificates: () => get<any[]>("/admin/certificates/"),
+
+    revokeCertificate: (id: number, reason: string) =>
+        post<any>(`/certificates/revoke/${id}/`, { reason }),
 
     // --- Exam Assignment ---
     assignExamToStudent: (examId: string | number, email: string) =>
-        apiClient(`/exams/${examId}/assign-student/`, {
-            method: "POST",
-            body: JSON.stringify({ email })
-        }),
+        post<any>(`/exams/${examId}/assign-student/`, { email }),
 
     // --- Reset Student Attempt ---
     resetSession: (sessionId: number) =>
-        apiClient(`/assessments/admin/session/${sessionId}/reset/`, {
-            method: "DELETE"
-        }),
+        del<any>(`/assessments/admin/session/${sessionId}/reset/`),
 
-    exportExamResults: async (examId: number) => {
+    // --- Export Results ---
+    exportExamResults: async (examId: number): Promise<Blob> => {
         const token = authStorage.getAccessToken()
-        const res = await fetch(`${API_BASE_URL}/assessments/admin/export/exam/${examId}/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (!res.ok) throw new Error("Export failed")
-        return res.blob()
-    },
-    revokeCertificate: (id: number, reason: string) =>
-        apiClient(`/certificates/revoke/${id}/`, {
-            method: "POST",
-            body: JSON.stringify({ reason })
-        }),
-
-    // --- NEW: Download Result Slip (PDF) ---
-    downloadResultPdf: async (sessionId: number) => {
-        const token = authStorage.getAccessToken()
-        // Ensure you use your actual API URL variable
-        const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://51.77.149.67/api"
-
-        const res = await fetch(`${BASE}/assessments/result/${sessionId}/download/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await fetch(`${API_BASE_URL}/assessments/admin/export/exam/${examId}/`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
         })
 
-        if (!res.ok) throw new Error("Download failed")
-        return res.blob()
+        if (!response.ok) {
+            throw new Error(`Export failed: ${response.status} ${response.statusText}`)
+        }
+
+        return response.blob()
     },
 
-
-    // 2. Get Single Session Detail (Questions + Answers) -> THIS FIXES THE BUTTON
-    getGradingSession: async (sessionId: number) => {
+    // --- Download Result Slip ---
+    downloadResultPdf: async (sessionId: number): Promise<Blob> => {
         const token = authStorage.getAccessToken()
-        const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://51.77.149.67/api"
-        // Matches the URL we just added above
-        const res = await fetch(`${BASE}/assessments/grading/session/${sessionId}/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await fetch(`${API_BASE_URL}/assessments/result/${sessionId}/download/`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/pdf'
+            }
         })
-        if (!res.ok) throw new Error("Failed to load session details")
-        return res.json()
+
+        if (!response.ok) {
+            throw new Error(`Download failed: ${response.status} ${response.statusText}`)
+        }
+
+        return response.blob()
     },
 
+    // --- Analytics ---
+    getAnalytics: () => get<any>("/admin/analytics/"),
 
+    // --- Platform Settings ---
+    getSettings: () => get<any>("/core/settings/"),
+
+    updateSettings: (settingsData: any) => {
+        if (settingsData instanceof FormData) {
+            return post<any>("/core/settings/", settingsData, true)
+        }
+        return put<any>("/core/settings/", settingsData)
+    },
+
+    // --- Audit Logs ---
+    getAuditLogs: () => get<any[]>("/core/audit-logs/"),
+
+    // --- Download Certificate ---
+    downloadCertificate: async (sessionId: string | number): Promise<Blob> => {
+        const token = authStorage.getAccessToken()
+        const response = await fetch(`${API_BASE_URL}/certificates/download/${sessionId}/`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/pdf'
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Certificate download failed: ${response.status} ${response.statusText}`)
+        }
+
+        return response.blob()
+    },
+
+    // --- BACKUP & RESTORE ---
+    getBackups: () => get<any[]>("/admin/backups/list/"),
+
+    restoreBackup: (filename: string) =>
+        post<any>("/admin/backups/restore/", { filename }),
+
+    deleteBackup: (filename: string) =>
+        del<any>(`/admin/backups/delete/${filename}/`),
+
+    downloadBackup: async (filename: string): Promise<void> => {
+        const token = authStorage.getAccessToken()
+        const response = await fetch(`${API_BASE_URL}/admin/backups/download/${filename}/`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Download backup failed: ${response.status} ${response.statusText}`)
+        }
+
+        // Create a temporary URL for the blob
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+
+        // Cleanup
+        if (link.parentNode) {
+            link.parentNode.removeChild(link)
+        }
+        window.URL.revokeObjectURL(url)
+    },
+
+    createBackup: () => apiClient.post('/admin/backups/create/').then(res => res.data), // Ensure the '/' is at the end
 }
 
 export const studentAPI = {
-    // 1. Get all available exams
-    getExams: () => apiClient<any[]>("/exams/"),
+    // --- Exams ---
+    getExams: () => get<any[]>("/exams/"),
 
-    // 2. Start Exam: Creates a session and fetches questions
     startExam: (examId: string | number) =>
-        apiClient<{
-            id: number; // session_id
+        post<{
+            id: number;
             questions: any[];
             duration_minutes: number;
             time_remaining_seconds: number;
-        }>(`/exams/${examId}/start/`, { method: "POST" }),
+        }>(`/exams/${examId}/start/`),
 
-    // 3. Submit Exam: Sends all answers
-    submitExam: (sessionId: number, answers: { question_id: number; selected_option_id?: number; text_answer?: string }[]) =>
-        apiClient(`/exams/session/${sessionId}/submit/`, {
-            method: "POST",
-            body: JSON.stringify({ answers })
-        }),
+    submitExam: (sessionId: number, answers: {
+        question_id: number;
+        selected_option_id?: number;
+        text_answer?: string
+    }[]) =>
+        post<any>(`/exams/session/${sessionId}/submit/`, { answers }),
 
-    // 4. Get Exam History (Attempts)
-    getExamAttempts: () => apiClient<any[]>("/exams/attempts/"),
+    // --- History & Results ---
+    getExamAttempts: () => get<any[]>("/exams/attempts/"),
 
-    // 5. Get Certificates
-    getCertificates: () => apiClient<any[]>("/certificates/"),
+    getExamHistory: () => get<any[]>("/assessments/history/"),
 
-    // 6. Get Session Details
-    getSession: (sessionId: string | number) =>
-        apiClient<any>(`/exams/session/${sessionId}/`),
+    getSession: (sessionId: string | number) => get<any>(`/exams/session/${sessionId}/`),
 
-    // 7. Get Session Result
-    getSessionResult: (sessionId: number) => apiClient(`/assessments/result/${sessionId}/`),
+    getSessionResult: (sessionId: number) => get<any>(`/assessments/result/${sessionId}/`),
 
-    // 8. Get Exam History
-    getExamHistory: () => apiClient('/assessments/history/'),
+    // --- Certificates ---
+    getCertificates: () => get<any[]>("/certificates/"),
 
-    // 9. Update Profile
-    updateProfile: (data: any) => apiClient('/auth/users/me/', { method: 'PATCH', body: JSON.stringify(data) }),
-
-    // 10. Download Certificate
-    downloadCertificate: async (certId: string) => {
-        const token = authStorage.getAccessToken();
-        const res = await fetch(`${API_BASE_URL}/certificates/download/${certId}/`, {
+    downloadCertificate: async (certId: string): Promise<Blob> => {
+        const token = authStorage.getAccessToken()
+        const response = await fetch(`${API_BASE_URL}/certificates/download/${certId}/`, {
             headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error("Failed");
-        return res.blob();
+        })
+
+        if (!response.ok) {
+            throw new Error(`Certificate download failed: ${response.status} ${response.statusText}`)
+        }
+
+        return response.blob()
     },
 
-    // 11. Download Result
-    downloadResult: async (sessionId: string) => {
-        const token = authStorage.getAccessToken();
-        const res = await fetch(`${API_BASE_URL}/assessments/result/${sessionId}/download/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) {
-            console.error("Download failed:", res.status, await res.text());
-            throw new Error(`Failed: ${res.status}`);
+    // --- Profile ---
+    updateProfile: (data: any) => patch<any>('/auth/users/me/', data),
+
+    // --- Download Result ---
+    downloadResult: async (sessionId: string): Promise<Blob> => {
+        const token = authStorage.getAccessToken()
+        const response = await fetch(`${API_BASE_URL}/assessments/result/${sessionId}/download/`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/pdf'
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Result download failed: ${response.status} ${response.statusText}`)
         }
-        return res.blob();
+
+        return response.blob()
     },
 }
 
 export const examinerAPI = {
-    // 1. Get List of Scripts to Grade
-    getPendingReviews: () => apiClient<any[]>("/admin/grading/pending/"),
+    // --- Reviews ---
+    getPendingReviews: () => get<any[]>("/admin/grading/pending/"),
 
-    // 2. Get Single Session Details
-    getSession: (sessionId: string | number) =>
-        apiClient<any>(`/admin/grading/session/${sessionId}/`),
+    getSession: (sessionId: string | number) => get<any>(`/admin/grading/session/${sessionId}/`),
 
-    // 3. Submit the Grade
     submitGrades: (sessionId: string | number, grades: any[]) =>
-        apiClient(`/admin/grading/submit/${sessionId}/`, {
-            method: "POST",
-            body: JSON.stringify({ grades })
-        }),
+        post<any>(`/admin/grading/submit/${sessionId}/`, { grades }),
 
-    // 4. Get Examiner Stats
-    getStats: () => apiClient<{ pending: number; graded: number; total: number }>("/examiner/stats/"),
+    // --- Stats & History ---
+    getStats: () => get<{ pending: number; graded: number; total: number }>("/examiner/stats/"),
 
-    // 5. Get Graded History
-    getGradedHistory: () => apiClient<any[]>("/examiner/history/"),
+    getGradedHistory: () => get<any[]>("/examiner/history/"),
 }
 
 export const userAPI = {
-    getProfile: () => apiClient<User>("/profile/"),
-    updateProfile: (data: Partial<User>) =>
-        apiClient("/profile/", { method: "PATCH", body: JSON.stringify(data) }),
+    getProfile: () => get<User>("/profile/"),
+    updateProfile: (data: Partial<User>) => patch<User>("/profile/", data),
 }
 
 export const paymentAPI = {
     verifyPayment: (reference: string, examId: number) =>
-        apiClient("/payments/verify/", {
-            method: "POST",
-            body: JSON.stringify({ reference, exam_id: examId })
-        }),
+        post<any>("/payments/verify/", { reference, exam_id: examId }),
 }
+
 export const publicAPI = {
-    // Check if a certificate code is valid (No login required)
-    verifyCertificate: (code: string) => apiClient<any>(`/certificates/verify/${code}/`)
+    verifyCertificate: (code: string) => get<any>(`/certificates/verify/${code}/`)
 }
