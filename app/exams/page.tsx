@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { adminAPI, studentAPI } from "@/lib/api"
 import { useAuth } from "@/hooks/use-auth"
-import { Header } from "@/components/header" // Integrated Header
+import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -153,68 +153,57 @@ export default function ExamsPage() {
       <Header />
 
       <main className="flex-1 container mx-auto py-10 px-4">
-        {/* --- CONDITIONAL VIEW START --- */}
         {!isAdmin ? (
-          // PUBLIC / CANDIDATE VIEW
-          <div className="space-y-8">
-            <div className="max-w-2xl">
-              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Professional Certifications</h1>
-              <p className="mt-4 text-lg text-slate-600">
-                Advance your career with industry-recognized certifications in logistics, transport, and supply chain management.
-              </p>
-            </div>
+          /* --- PUBLIC VISITOR / CANDIDATE GRID --- */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredExams.map((exam) => (
+              <Card key={exam.id} className="flex flex-col hover:shadow-xl transition-all duration-300 border-slate-200 group overflow-hidden bg-white">
+                <div className="h-2 bg-blue-600 w-full" />
+                <CardHeader>
+                  <div className="flex justify-between items-start mb-2">
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50">Certification</Badge>
+                    <span className="font-bold text-xl text-emerald-600">
+                      {exam.price > 0 ? `₦${Number(exam.price).toLocaleString()}` : "FREE"}
+                    </span>
+                  </div>
+                  <CardTitle className="text-2xl group-hover:text-blue-700 transition-colors">{exam.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <p className="text-slate-600 leading-relaxed line-clamp-4 mb-6">
+                    {exam.description || "Take your next step in logistics professional certification."}
+                  </p>
+                  <div className="flex items-center gap-6 text-sm font-semibold text-slate-500">
+                    <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-blue-500" /> {exam.duration_minutes} Mins</div>
+                    <div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-500" /> {exam.total_questions || 0} Qs</div>
+                  </div>
+                </CardContent>
+                <CardFooter className="border-t bg-slate-50/80 p-6">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6 shadow-md" asChild>
+                    <Link href={isAuthenticated ? `/student/exam/${exam.id}` : "/login"}>
+                      {exam.price > 0 ? "Enroll Now" : "Start Certification"}
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredExams.map((exam) => (
-                <Card key={exam.id} className="flex flex-col hover:shadow-xl transition-all duration-300 border-slate-200 group overflow-hidden">
-                  <div className="h-2 bg-blue-600 w-full" />
-                  <CardHeader>
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50">Certification</Badge>
-                      <span className="font-bold text-xl text-emerald-600">
-                        {exam.price > 0 ? `₦${Number(exam.price).toLocaleString()}` : "FREE"}
-                      </span>
-                    </div>
-                    <CardTitle className="text-2xl group-hover:text-blue-700 transition-colors">{exam.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <p className="text-slate-600 leading-relaxed line-clamp-4 mb-6">
-                      {exam.description || "Join the elite group of logistics professionals with this comprehensive certification program."}
-                    </p>
-                    <div className="flex items-center gap-6 text-sm font-semibold text-slate-500">
-                      <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-blue-500" /> {exam.duration_minutes} Mins</div>
-                      <div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-500" /> {exam.total_questions || 0} Qs</div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t bg-slate-50/80 p-6">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6 shadow-md" asChild>
-                      <Link href={isAuthenticated ? `/student/exam/${exam.id}` : "/login"}>
-                        {exam.price > 0 ? "Enroll Now" : "Start Certification"}
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
+            {filteredExams.length === 0 && (
+              <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+                <p className="text-slate-500 text-lg">No examinations are currently available.</p>
+              </div>
+            )}
           </div>
         ) : (
-          // ADMIN MANAGEMENT VIEW
+          /* --- ADMIN MANAGEMENT TABLE --- */
           <div className="space-y-6">
             <div className="flex justify-between items-end">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">Exam Management</h1>
-                <p className="text-slate-500 mt-1">Configure and monitor all platform examinations.</p>
+                <p className="text-slate-500 mt-1">Configure and monitor platform examinations.</p>
               </div>
               <Button onClick={() => { resetForm(); setIsDialogOpen(true) }} className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="mr-2 h-4 w-4" /> New Examination
               </Button>
-            </div>
-
-            <div className="flex items-center gap-4 bg-white p-4 rounded-lg border shadow-sm">
-              <div className="relative w-full max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input placeholder="Search exams by title..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-              </div>
             </div>
 
             <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
@@ -244,7 +233,7 @@ export default function ExamsPage() {
                       <TableCell>{exam.pass_mark_percentage || exam.passing_score}%</TableCell>
                       <TableCell>{exam.total_questions || 0}</TableCell>
                       <TableCell>
-                        <Badge variant={exam.is_active ? "default" : "secondary"} className={exam.is_active ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : ""}>
+                        <Badge variant={exam.is_active ? "default" : "secondary"} className={exam.is_active ? "bg-emerald-100 text-emerald-800" : ""}>
                           {exam.is_active ? "Live" : "Draft"}
                         </Badge>
                       </TableCell>
@@ -270,21 +259,20 @@ export default function ExamsPage() {
         )}
       </main>
 
-      {/* --- ADMIN DIALOG REMAINS ACCESSIBLE --- */}
+      {/* --- CREATE / EDIT DIALOG --- */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="text-2xl">{editingExam ? "Update Examination" : "Add New Examination"}</DialogTitle>
-            <DialogDescription>Modify core settings and pricing for this course.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
             <div className="grid gap-2">
               <Label htmlFor="title" className="font-bold">Exam Title</Label>
-              <Input id="title" {...form.register("title")} placeholder="e.g. Certified Logistics Manager" />
+              <Input id="title" {...form.register("title")} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description" className="font-bold">Description</Label>
-              <Textarea id="description" {...form.register("description")} rows={4} placeholder="What will candidates learn?" />
+              <Textarea id="description" {...form.register("description")} rows={4} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -302,17 +290,14 @@ export default function ExamsPage() {
                 <Input type="number" {...form.register("price")} />
               </div>
               <div className="flex flex-col justify-center gap-2">
-                <Label className="font-bold">Visibility</Label>
-                <div className="flex items-center gap-3 border rounded-md p-2">
-                  <Switch checked={form.watch("is_active")} onCheckedChange={(c) => form.setValue("is_active", c)} />
-                  <span className="text-sm font-medium">{form.watch("is_active") ? "Active on Portal" : "Hidden / Draft"}</span>
-                </div>
+                <Label className="font-bold">Active Visibility</Label>
+                <Switch checked={form.watch("is_active")} onCheckedChange={(c) => form.setValue("is_active", c)} />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Discard</Button>
-            <Button onClick={form.handleSubmit(onSubmit)} className="bg-blue-600 px-8">Save Examination</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={form.handleSubmit(onSubmit)} className="bg-blue-600 px-8">Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
