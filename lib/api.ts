@@ -3,8 +3,7 @@
 import { authStorage } from "./auth"
 import type { User, AuthResponse } from "./types"
 
-// lib/api.ts
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://cpt-cpt.ciltra.org/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://cpt-cpt.ciltra.org/api";
 
 async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = authStorage.getAccessToken()
