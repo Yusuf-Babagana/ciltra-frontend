@@ -57,3 +57,24 @@ export interface AuthTokens {
     refresh: string;
     user: User;
 }
+
+export type ContentType =
+    | "ETHICS_MCQ"
+    | "CASE_SCENARIO"
+    | "ESSAY_PROMPT"
+    | "GENERAL_TEXT_PACK"
+    | "SPECIALIZED_TEXT_PACK"
+    | "LOCALIZATION_BRIEF"
+    | "TRANSCREATION_BRIEF";
+
+export interface ContentItem {
+    id: number;
+    type: ContentType;
+    text: string;
+    language_pair: string; // e.g., "EN-FR" [cite: 40]
+    direction: "AtoB" | "BtoA" | "both"; // [cite: 40]
+    specialization?: "General" | "Legal" | "Medical" | "Academic"; // [cite: 40]
+    difficulty: "Beginner" | "Intermediate" | "Advanced" | "Master"; // [cite: 40]
+    is_locked: boolean; // Freeze once exam is live 
+    version: number;
+}
