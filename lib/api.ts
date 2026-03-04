@@ -273,7 +273,7 @@ export const adminAPI = {
     },
 
     // --- BACKUP & RESTORE ---
-    getBackups: () => get<any[]>("/admin/backups/list/"),
+    getBackups: () => get<string[]>("/admin/backups/list/"),
 
     restoreBackup: (filename: string) =>
         post<any>("/admin/backups/restore/", { filename }),
@@ -288,12 +288,8 @@ export const adminAPI = {
                 'Authorization': `Bearer ${token}`,
             }
         })
+        if (!response.ok) throw new Error("Download backup failed");
 
-        if (!response.ok) {
-            throw new Error(`Download backup failed: ${response.status} ${response.statusText}`)
-        }
-
-        // Create a temporary URL for the blob
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
@@ -301,15 +297,12 @@ export const adminAPI = {
         link.setAttribute('download', filename)
         document.body.appendChild(link)
         link.click()
-
-        // Cleanup
-        if (link.parentNode) {
-            link.parentNode.removeChild(link)
-        }
+        link.remove()
         window.URL.revokeObjectURL(url)
     },
 
-    createBackup: () => apiClient.post('/admin/backups/create/').then(res => res.data), // Ensure the '/' is at the end
+    // Fixed: Correctly using the 'post' helper and ensuring standard endpoint naming
+    createBackup: () => post<any>("/admin/backups/create/"),
 }
 
 export const studentAPI = {

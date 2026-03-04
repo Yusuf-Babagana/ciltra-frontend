@@ -21,17 +21,29 @@ export interface User {
 export interface Exam {
     id: number;
     title: string;
-    /** True when this record is a reusable CPT Blueprint rather than a live instance */
-    is_blueprint: boolean;
-    /** ISO language-pair code, e.g. "EN-FR" */
-    language_pair: string;
-    /** Section A weighting (default 15%) */
-    weight_section_a: number;
-    /** Section B weighting (default 65%) */
-    weight_section_b: number;
-    /** Section C weighting (default 20%) */
-    weight_section_c: number;
-    status: "draft" | "approved" | "live" | "marking" | "finalized";
+    description: string;
+    is_blueprint: boolean; // blueprint vs instance [cite: 191]
+    language_pair?: {
+        source_language: string;
+        target_language: string;
+        pair_code: string;
+    };
+    // Section Weights [cite: 192]
+    weight_section_a: number; // 15%
+    weight_section_b: number; // 65%
+    weight_section_c: number; // 20%
+    pass_mark_percentage: number;
+    price: number;
+}
+
+export interface ExamSession {
+    id: number;
+    user_email: string;
+    score_section_a: number;
+    score_section_b: number;
+    score_section_c: number;
+    is_graded: boolean;
+    requires_moderation: boolean; // double-blind variance trigger [cite: 151, 193]
 }
 
 export interface AuthResponse {
