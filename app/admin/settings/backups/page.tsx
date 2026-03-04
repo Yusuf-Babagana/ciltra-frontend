@@ -36,7 +36,7 @@ export default function BackupPage() {
     const fetchBackups = async () => {
         try {
             const data = await adminAPI.getBackups()
-            setBackups(data)
+            setBackups(data || [])
         } catch (error) {
             toast.error("Could not load backup list")
         } finally {
@@ -158,7 +158,7 @@ export default function BackupPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {backups.map((file) => (
+                            {(backups || []).map((file) => (
                                 <TableRow key={file} className="hover:bg-slate-50/50 transition-colors">
                                     <TableCell className="py-4 pl-6">
                                         <div className="flex items-center gap-3">
@@ -213,7 +213,7 @@ export default function BackupPage() {
                                 </TableRow>
                             ))}
 
-                            {backups.length === 0 && (
+                            {(!backups || backups.length === 0) && (
                                 <TableRow>
                                     <TableCell colSpan={3} className="text-center py-20">
                                         <div className="flex flex-col items-center gap-3">

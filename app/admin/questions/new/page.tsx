@@ -67,7 +67,7 @@ const contentSchema = z.object({
   // Legacy / Other
   marks: z.number().min(1, "Marks must be at least 1"),
   preserve_format: z.boolean().default(false),
-  options: z.array(z.string()).optional(),
+  options: z.array(z.object({ text: z.string() })).optional(),
   correct_option_index: z.string().optional(),
 })
 
@@ -97,7 +97,7 @@ export default function NewContentPage() {
       difficulty: "Intermediate",
       marks: 10,
       preserve_format: false,
-      options: ["", "", "", ""],
+      options: [{ text: "" }, { text: "" }, { text: "" }, { text: "" }],
     },
   })
 
@@ -132,9 +132,9 @@ export default function NewContentPage() {
 
       // Add Options (if MCQ)
       if (isMCQ && data.options) {
-        const validOptions = data.options.filter(opt => opt.trim() !== "")
-        const optionsPayload = validOptions.map((optText, index) => ({
-          text: optText,
+        const validOptions = data.options.filter(opt => opt.text.trim() !== "")
+        const optionsPayload = validOptions.map((opt, index) => ({
+          text: opt.text,
           is_correct: index.toString() === data.correct_option_index
         }))
 
@@ -362,7 +362,7 @@ export default function NewContentPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append("")}
+                    onClick={() => append({ text: "" })}
                   >
                     <Plus className="mr-2 h-4 w-4" /> Add Option
                   </Button>
@@ -383,7 +383,7 @@ export default function NewContentPage() {
                       <div className="flex-1">
                         <Input
                           placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                          {...register(`options.${index}` as const)}
+                          {...register(`options.${index}.text` as const)}
                         />
                       </div>
                       {fields.length > 2 && (

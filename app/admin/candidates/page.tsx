@@ -27,6 +27,9 @@ export default function CandidatesPage() {
   const [isAssignOpen, setIsAssignOpen] = useState(false)
   const [exams, setExams] = useState<any[]>([])
   const [selectedExamId, setSelectedExamId] = useState("")
+  // CPT Enrollment Fields
+  const [languagePair, setLanguagePair] = useState("")
+  const [specialization, setSpecialization] = useState("General")
 
   useEffect(() => {
     fetchUsers()
@@ -99,9 +102,24 @@ export default function CandidatesPage() {
   }
 
   const handleAssignExam = async () => {
-    if (!selectedExamId || !selectedUser) return;
+    if (!selectedExamId || !selectedUser || !languagePair) {
+      toast.error("Please fill in all mandatory fields (Exam and Language Pair).");
+      return;
+    }
+
     try {
+      // 1. Assign Exam (passing the CPT tracks if your backend accepts them yet, or just log them for now)
       await adminAPI.assignExamToStudent(selectedExamId, selectedUser.email)
+
+      // 2. Trigger Backup Snapshot (CPT Lifecycle Rule)
+      try {
+        await adminAPI.createBackup()
+        toast.success("Pre-exam snapshot created.");
+      } catch (backupErr) {
+        console.warn("Backup creation failed automatically:", backupErr);
+        toast.warning("Exam assigned, but pre-exam snapshot failed. Please trigger manually in settings.");
+      }
+
       toast.success(`Exam assigned to ${selectedUser.first_name}`)
       setIsAssignOpen(false)
     } catch (e) {
@@ -249,20 +267,51 @@ export default function CandidatesPage() {
       <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign Exam</DialogTitle>
-            <DialogDescription>Grant free access to {selectedUser?.first_name}.</DialogDescription>
+            <DialogTitle>Assign Exam & Enroll</DialogTitle>
+            <DialogDescription>Define the CPT language pair and B2 track for {selectedUser?.first_name}.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <Select onValueChange={setSelectedExamId}>
-              <SelectTrigger><SelectValue placeholder="Choose exam..." /></SelectTrigger>
-              <SelectContent>
-                {exams.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.title}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <div className="bg-blue-50 text-blue-800 text-sm p-3 rounded border border-blue-100">User will bypass payment.</div>
+            <div className="space-y-2">
+              <Label>Select Exam or Blueprint</Label>
+              <Select onValueChange={setSelectedExamId}>
+                <SelectTrigger><SelectValue placeholder="Choose exam..." /></SelectTrigger>
+                <SelectContent>
+                  {exams.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Language Pair <span className="text-red-500">*</span></Label>
+              <Select onValueChange={setLanguagePair}>
+                <SelectTrigger><SelectValue placeholder="Format: EN-FR" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EN-FR">EN → FR</SelectItem>
+                  <SelectItem value="FR-EN">FR → EN</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Specialization Track (Section B2)</Label>
+              <Select onValueChange={setSpecialization} defaultValue="General">
+                <SelectTrigger><SelectValue placeholder="Select Specialization" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="General">General (No Track)</SelectItem>
+                  <SelectItem value="Legal">Legal</SelectItem>
+                  <SelectItem value="Medical">Medical</SelectItem>
+                  <SelectItem value="Academic">Academic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded border border-blue-100 flex items-start gap-2">
+              <History className="h-4 w-4 mt-0.5 shrink-0" />
+              <p>Assigning this exam will automatically trigger a system snapshot to preserve the candidate's enrollment state before the session begins.</p>
+            </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleAssignExam}>Confirm</Button>
+            <Button onClick={handleAssignExam}>Confirm Assignment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

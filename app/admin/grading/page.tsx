@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
+import { useAuth } from "@/lib/auth-context"
 
 export default function GradingPage() {
+    const { user } = useAuth()
     const [sessions, setSessions] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
@@ -30,7 +32,18 @@ export default function GradingPage() {
     const fetchPending = async () => {
         try {
             const data = await adminAPI.getPendingGrading()
-            setSessions(data)
+
+            // CPT Grader Assignment Logic
+            if (user?.role === 'grader' && user?.language_competence) {
+                const filtered = data.filter((s: any) => {
+                    // Normalize checking (e.g. ['EN-FR'] vs 'EN-FR')
+                    const examPair = s.exam.language_pair?.pair_code || s.exam.language_pair;
+                    return examPair && user.language_competence.includes(examPair);
+                })
+                setSessions(filtered)
+            } else {
+                setSessions(data)
+            }
         } catch (error) {
             console.error(error)
         } finally {

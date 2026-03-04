@@ -317,12 +317,18 @@ export const studentAPI = {
             time_remaining_seconds: number;
         }>(`/exams/${examId}/start/`),
 
-    submitExam: (sessionId: number, answers: {
-        question_id: number;
-        selected_option_id?: number;
-        text_answer?: string
-    }[]) =>
-        post<any>(`/exams/session/${sessionId}/submit/`, { answers }),
+    submitExam: (sessionId: number, payload: {
+        answers: {
+            question_id: number;
+            selected_option_id?: number;
+            text_answer?: string
+        }[];
+        metadata?: {
+            ai_disclosed: boolean;
+            glossary: { source: string; target: string }[];
+        };
+    }) =>
+        post<any>(`/exams/session/${sessionId}/submit/`, payload),
 
     // --- History & Results ---
     getExamAttempts: () => get<any[]>("/exams/attempts/"),
