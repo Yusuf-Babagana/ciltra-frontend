@@ -34,7 +34,7 @@ export default function CandidatesPage() {
   useEffect(() => {
     // Prevent third-party libs from guessing asset paths that violate CSP
     if (typeof window !== "undefined") {
-      (window as any).EXCALIDRAW_ASSET_PATH = "/";
+      (window as any).EXCALIDRAW_ASSET_PATH = "/admin/";
     }
     fetchUsers()
   }, [])
