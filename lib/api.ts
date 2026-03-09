@@ -206,12 +206,13 @@ export const adminAPI = {
 
     // --- Grading ---
     getPendingGrading: () => get<any[]>("/admin/grading/pending/"),
+    getExaminerStats: () => get<any>("/admin/stats/"),
 
     submitGrades: (sessionId: string | number, grades: any[]) =>
         post<any>(`/admin/grading/submit/${sessionId}/`, { grades }),
 
     getGradingSession: (sessionId: number) =>
-        get<any>(`/assessments/grading/session/${sessionId}/`),
+        get<any>(`/admin/grading/submit/${sessionId}/`),
 
     // --- Grading History ---
     getGradedHistory: () => get<any[]>("/admin/grading/history/"),
@@ -364,6 +365,9 @@ export const studentAPI = {
 
     getSessionResult: (sessionId: number) => get<any>(`/assessments/result/${sessionId}/`),
 
+    syncHeartbeat: (sessionId: number, data: { question_id: number, text_answer: string }) =>
+        post<any>(`/exams/session/${sessionId}/heartbeat/`, data),
+
     // --- Certificates ---
     getCertificates: () => get<any[]>("/certificates/"),
 
@@ -402,10 +406,10 @@ export const studentAPI = {
 }
 
 export const examinerAPI = {
-    // --- Reviews ---
-    getPendingReviews: () => get<any[]>("/admin/grading/pending/"),
-
-    getSession: (sessionId: string | number) => get<any>(`/admin/grading/session/${sessionId}/`),
+    // --- Grading & Exams ---
+    getPendingGrading: () => get<any[]>("/admin/grading/pending/"),
+    getExaminerStats: () => get<any>("/admin/stats/"),
+    getGradingSession: (sessionId: number) => get<any>(`/admin/grading/submit/${sessionId}/`),
 
     submitGrades: (sessionId: string | number, grades: any[]) =>
         post<any>(`/admin/grading/submit/${sessionId}/`, { grades }),
