@@ -32,6 +32,10 @@ export default function CandidatesPage() {
   const [specialization, setSpecialization] = useState("General")
 
   useEffect(() => {
+    // Prevent third-party libs from guessing asset paths that violate CSP
+    if (typeof window !== "undefined") {
+      (window as any).EXCALIDRAW_ASSET_PATH = "/";
+    }
     fetchUsers()
   }, [])
 
@@ -171,7 +175,7 @@ export default function CandidatesPage() {
                     <TableCell className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
-                          {user.first_name[0]}{user.last_name[0]}
+                          {user?.first_name?.[0] || '?'}{user?.last_name?.[0] || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="font-medium">

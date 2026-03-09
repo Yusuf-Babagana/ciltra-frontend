@@ -202,6 +202,8 @@ export const adminAPI = {
     uploadQuestions: (formData: FormData) =>
         post<any>("/questions/bulk-upload/", formData, true),
 
+    approveQuestion: (id: number) => post<any>(`/questions/${id}/approve/`),
+
     // --- Grading ---
     getPendingGrading: () => get<any[]>("/admin/grading/pending/"),
 
