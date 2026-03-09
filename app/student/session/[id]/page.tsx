@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import TranslationWorkspace from "../components/TranslationWorkspace"
 
 export default function ExamSessionPage() {
     const { id } = useParams()
@@ -117,7 +118,7 @@ export default function ExamSessionPage() {
 
         setSubmitting(true)
         try {
-            const formattedAnswers = questions.map((q) => {
+            const formattedAnswers: any[] = questions.map((q) => {
                 const ansValue = answers[q.id];
                 if (!ansValue) return null;
 
@@ -129,10 +130,10 @@ export default function ExamSessionPage() {
                 } else {
                     return {
                         question_id: q.id,
-                        text_answer: ansValue
+                        text_answer: String(ansValue)
                     };
                 }
-            }).filter(Boolean);
+            }).filter((a) => a !== null);
 
             // Send answers + glossary metadata
             const payload = {
@@ -159,6 +160,7 @@ export default function ExamSessionPage() {
 
     const currentQ = questions[currentQIndex]
     const isTheory = currentQ.question_type === 'theory' || currentQ.question_type === 'essay';
+    const isSectionB = currentQ.section === "Section B";
     const isLastQuestion = currentQIndex === questions.length - 1;
 
     // Word Counter Logic
@@ -198,124 +200,135 @@ export default function ExamSessionPage() {
                     </div>
                 )}
 
-                <Card className={`shadow-md border-t-4 ${isTheory ? 'border-t-orange-500' : 'border-t-indigo-600'}`}>
-                    <CardHeader className="bg-slate-50/50 border-b pb-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <Badge variant="outline" className={`text-sm px-3 py-1 font-bold ${isTheory ? 'border-orange-200 bg-orange-100 text-orange-800' : 'border-indigo-200 bg-indigo-100 text-indigo-800'}`}>
-                                Maximum Points: {currentQ.points || (isTheory ? 10 : 2)}
-                            </Badge>
+                {isSectionB ? (
+                    <TranslationWorkspace
+                        sourceText={currentQ.question_text}
+                        brief={currentQ.brief || currentQ.instructions}
+                        value={answers[currentQ.id] || ""}
+                        onChange={(val) => handleAnswerChange(currentQ.id, val)}
+                    />
+                ) : (
+                    <Card className={`shadow-md border-t-4 ${isTheory ? 'border-t-orange-500' : 'border-t-indigo-600'}`}>
+                        <CardHeader className="bg-slate-50/50 border-b pb-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <Badge variant="outline" className={`text-sm px-3 py-1 font-bold ${isTheory ? 'border-orange-200 bg-orange-100 text-orange-800' : 'border-indigo-200 bg-indigo-100 text-indigo-800'}`}>
+                                    Maximum Points: {currentQ.points || (isTheory ? 10 : 2)}
+                                </Badge>
 
-                            <Badge variant="secondary" className="uppercase tracking-wider text-xs font-bold border shadow-sm">
-                                {isTheory ? "Theory / Translation" : "Multiple Choice"}
-                            </Badge>
-                        </div>
-                        <CardTitle className="text-xl leading-relaxed text-slate-800 font-serif">
-                            {currentQ.question_text}
-                        </CardTitle>
-                    </CardHeader>
+                                <Badge variant="secondary" className="uppercase tracking-wider text-xs font-bold border shadow-sm">
+                                    {isTheory ? "Theory / Translation" : "Multiple Choice"}
+                                </Badge>
+                            </div>
+                            <CardTitle className="text-xl leading-relaxed text-slate-800 font-serif">
+                                {currentQ.question_text}
+                            </CardTitle>
+                        </CardHeader>
 
-                    <CardContent className="pt-6">
-                        {isTheory ? (
-                            /* --- THEORY INPUT --- */
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between px-1">
-                                    <Label className="text-sm font-bold text-slate-700 uppercase tracking-widest">Your Translation</Label>
+                        <CardContent className="pt-6">
+                            {isTheory ? (
+                                /* --- THEORY INPUT --- */
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-1">
+                                        <Label className="text-sm font-bold text-slate-700 uppercase tracking-widest">Your Translation</Label>
 
-                                    {/* CPT Glossary Builder Modal */}
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" size="sm" className="h-8 text-xs font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 shadow-sm">
-                                                <Type className="w-3 h-3 mr-1.5" />
-                                                Glossary Builder ({glossaryTerms.length})
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[425px]">
-                                            <DialogHeader>
-                                                <DialogTitle>Translation Glossary</DialogTitle>
-                                                <DialogDescription>
-                                                    Build a glossary of terms for this section to aid your translation and demonstrate terminology competence.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="space-y-4 py-4">
-                                                <div className="flex items-end gap-2">
-                                                    <div className="flex-1 space-y-1">
-                                                        <Label className="text-xs">Source Term</Label>
-                                                        <Input value={newTermSource} onChange={(e) => setNewTermSource(e.target.value)} placeholder="e.g. Legal framework" />
-                                                    </div>
-                                                    <div className="flex-1 space-y-1">
-                                                        <Label className="text-xs">Target Term</Label>
-                                                        <Input value={newTermTarget} onChange={(e) => setNewTermTarget(e.target.value)} placeholder="e.g. Cadre juridique" />
-                                                    </div>
-                                                    <Button size="icon" className="shrink-0" onClick={handleAddGlossaryTerm}>
-                                                        <Plus className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-
-                                                <div className="space-y-2 mt-4 max-h-[200px] overflow-y-auto">
-                                                    {glossaryTerms.map((term, i) => (
-                                                        <div key={i} className="flex items-center justify-between bg-slate-50 p-2 rounded border text-sm">
-                                                            <div>
-                                                                <span className="font-semibold">{term.source}</span>
-                                                                <span className="mx-2 text-slate-400">→</span>
-                                                                <span className="text-indigo-700">{term.target}</span>
-                                                            </div>
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-500" onClick={() => handleRemoveGlossaryTerm(i)}>
-                                                                <X className="h-3 w-3" />
-                                                            </Button>
+                                        {/* CPT Glossary Builder Modal */}
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" size="sm" className="h-8 text-xs font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 shadow-sm">
+                                                    <Type className="w-3 h-3 mr-1.5" />
+                                                    Glossary Builder ({glossaryTerms.length})
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[425px]">
+                                                <DialogHeader>
+                                                    <DialogTitle>Translation Glossary</DialogTitle>
+                                                    <DialogHeader>
+                                                        <DialogDescription>
+                                                            Build a glossary of terms for this section to aid your translation and demonstrate terminology competence.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                </DialogHeader>
+                                                <div className="space-y-4 py-4">
+                                                    <div className="flex items-end gap-2">
+                                                        <div className="flex-1 space-y-1">
+                                                            <Label className="text-xs">Source Term</Label>
+                                                            <Input value={newTermSource} onChange={(e) => setNewTermSource(e.target.value)} placeholder="e.g. Legal framework" />
                                                         </div>
-                                                    ))}
-                                                    {glossaryTerms.length === 0 && <p className="text-xs text-muted-foreground text-center py-4 border-dashed border rounded">No terms added yet.</p>}
+                                                        <div className="flex-1 space-y-1">
+                                                            <Label className="text-xs">Target Term</Label>
+                                                            <Input value={newTermTarget} onChange={(e) => setNewTermTarget(e.target.value)} placeholder="e.g. Cadre juridique" />
+                                                        </div>
+                                                        <Button size="icon" className="shrink-0" onClick={handleAddGlossaryTerm}>
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="space-y-2 mt-4 max-h-[200px] overflow-y-auto">
+                                                        {glossaryTerms.map((term, i) => (
+                                                            <div key={i} className="flex items-center justify-between bg-slate-50 p-2 rounded border text-sm">
+                                                                <div>
+                                                                    <span className="font-semibold">{term.source}</span>
+                                                                    <span className="mx-2 text-slate-400">→</span>
+                                                                    <span className="text-indigo-700">{term.target}</span>
+                                                                </div>
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-500" onClick={() => handleRemoveGlossaryTerm(i)}>
+                                                                    <X className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                        {glossaryTerms.length === 0 && <p className="text-xs text-muted-foreground text-center py-4 border-dashed border rounded">No terms added yet.</p>}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
 
-                                <textarea
-                                    className={`flex min-h-[350px] w-full rounded-md border bg-white px-4 py-3 text-base shadow-inner focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors ${isOverMax ? 'border-red-500 focus-visible:ring-red-500' : 'border-slate-300 focus-visible:ring-indigo-500'}`}
-                                    placeholder="Type your translation here. Paragraph formatting is preserved."
-                                    value={currentAnswerText}
-                                    onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
-                                />
+                                    <textarea
+                                        className={`flex min-h-[350px] w-full rounded-md border bg-white px-4 py-3 text-base shadow-inner focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors ${isOverMax ? 'border-red-500 focus-visible:ring-red-500' : 'border-slate-300 focus-visible:ring-indigo-500'}`}
+                                        placeholder="Type your translation here. Paragraph formatting is preserved."
+                                        value={currentAnswerText}
+                                        onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
+                                    />
 
-                                {/* Live Word Counter */}
-                                <div className="flex justify-end">
-                                    <div className={`text-xs font-bold px-2.5 py-1 rounded-md border ${isOverMax ? 'bg-red-100 text-red-700 border-red-200' :
-                                        isOverWarning ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                            'bg-slate-100 text-slate-500 border-slate-200'
-                                        }`}>
-                                        Words: {currentWordCount} / {WORD_LIMIT_MAX}
-                                        {isOverMax && " (Limit Exceeded)"}
+                                    {/* Live Word Counter */}
+                                    <div className="flex justify-end">
+                                        <div className={`text-xs font-bold px-2.5 py-1 rounded-md border ${isOverMax ? 'bg-red-100 text-red-700 border-red-200' :
+                                            isOverWarning ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                                'bg-slate-100 text-slate-500 border-slate-200'
+                                            }`}>
+                                            Words: {currentWordCount} / {WORD_LIMIT_MAX}
+                                            {isOverMax && " (Limit Exceeded)"}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            /* --- MCQ INPUT --- */
-                            <div className="py-2">
-                                {currentQ.options && currentQ.options.length > 0 ? (
-                                    <RadioGroup
-                                        value={answers[currentQ.id]?.toString() || ""}
-                                        onValueChange={(val) => handleAnswerChange(currentQ.id, parseInt(val))}
-                                        className="space-y-3"
-                                    >
-                                        {currentQ.options.map((opt: any) => (
-                                            <div key={opt.id} className={`flex items-start space-x-3 border-2 p-4 rounded-xl cursor-pointer transition-all ${answers[currentQ.id] === opt.id ? 'border-indigo-600 bg-indigo-50/50 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
-                                                <RadioGroupItem value={opt.id.toString()} id={`opt-${opt.id}`} className="mt-1 border-slate-300 text-indigo-600 focus:ring-indigo-600" />
-                                                <Label htmlFor={`opt-${opt.id}`} className="flex-1 cursor-pointer font-medium text-slate-700 leading-relaxed text-base pt-0.5">
-                                                    {opt.text}
-                                                </Label>
-                                            </div>
-                                        ))}
-                                    </RadioGroup>
-                                ) : (
-                                    <div className="text-center py-12 text-muted-foreground bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                                        No options available for this question.
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            ) : (
+                                /* --- MCQ INPUT --- */
+                                <div className="py-2">
+                                    {currentQ.options && currentQ.options.length > 0 ? (
+                                        <RadioGroup
+                                            value={answers[currentQ.id]?.toString() || ""}
+                                            onValueChange={(val) => handleAnswerChange(currentQ.id, parseInt(val))}
+                                            className="space-y-3"
+                                        >
+                                            {currentQ.options.map((opt: any) => (
+                                                <div key={opt.id} className={`flex items-start space-x-3 border-2 p-4 rounded-xl cursor-pointer transition-all ${answers[currentQ.id] === opt.id ? 'border-indigo-600 bg-indigo-50/50 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
+                                                    <RadioGroupItem value={opt.id.toString()} id={`opt-${opt.id}`} className="mt-1 border-slate-300 text-indigo-600 focus:ring-indigo-600" />
+                                                    <Label htmlFor={`opt-${opt.id}`} className="flex-1 cursor-pointer font-medium text-slate-700 leading-relaxed text-base pt-0.5">
+                                                        {opt.text}
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </RadioGroup>
+                                    ) : (
+                                        <div className="text-center py-12 text-muted-foreground bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                            No options available for this question.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* AI Disclosure and Final Submit Section */}
                 {isLastQuestion && (
