@@ -94,8 +94,10 @@ function UserTable({ users, onEdit, onDelete, onToggleStatus, onResetPassword, o
                         <TableRow key={user.id}>
                             <TableCell>
                                 <div className="flex flex-col">
-                                    <span className="font-medium">{user.first_name} {user.last_name}</span>
-                                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                                    <span className="font-medium">
+                                        {user?.first_name || "Unknown"} {user?.last_name || "User"}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">{user?.email || "No Email"}</span>
                                 </div>
                             </TableCell>
                             <TableCell>{getRoleBadge(user.role)}</TableCell>
@@ -111,11 +113,18 @@ function UserTable({ users, onEdit, onDelete, onToggleStatus, onResetPassword, o
                                         Last Login: {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
                                     </p>
                                     <p className="text-muted-foreground">IP: {user.last_login_ip || 'N/A'}</p>
-                                    {user.is_locked_out && (
-                                        <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 flex gap-1 items-center w-fit">
-                                            Locked Out
-                                        </Badge>
-                                    )}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {user.is_locked_out && (
+                                            <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 flex gap-1 items-center w-fit">
+                                                Locked Out
+                                            </Badge>
+                                        )}
+                                        {user.failed_login_attempts > 0 && (
+                                            <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                                                {user.failed_login_attempts} failed attempts
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </TableCell>
                             <TableCell className="text-right">

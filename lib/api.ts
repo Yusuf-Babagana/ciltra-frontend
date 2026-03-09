@@ -223,8 +223,8 @@ export const adminAPI = {
         post<any>(`/certificates/revoke/${id}/`, { reason }),
 
     // --- Exam Assignment ---
-    assignExamToStudent: (examId: string | number, email: string) =>
-        post<any>(`/exams/${examId}/assign-student/`, { email }),
+    assignExamToStudent: (payload: { exam_id: string | number, student_email: string, language_pair: string, specialization: string }) =>
+        post<any>(`/exams/${payload.exam_id}/assign-student/`, payload),
 
     // --- Reset Student Attempt ---
     resetSession: (sessionId: number) =>

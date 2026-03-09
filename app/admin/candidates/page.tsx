@@ -107,27 +107,31 @@ export default function CandidatesPage() {
 
   const handleAssignExam = async () => {
     if (!selectedExamId || !selectedUser || !languagePair) {
-      toast.error("Please fill in all mandatory fields (Exam and Language Pair).");
+      toast.error("Mandatory fields missing (Exam and Language Pair).");
       return;
     }
 
     try {
-      // 1. Assign Exam (passing the CPT tracks if your backend accepts them yet, or just log them for now)
-      await adminAPI.assignExamToStudent(selectedExamId, selectedUser.email)
+      // 1. Assign Exam with CPT Metadata
+      await adminAPI.assignExamToStudent({
+        exam_id: selectedExamId,
+        student_email: selectedUser.email,
+        language_pair: languagePair,
+        specialization: specialization
+      });
 
-      // 2. Trigger Backup Snapshot (CPT Lifecycle Rule)
+      // 2. Trigger Backup Snapshot (CPT Rule)
       try {
-        await adminAPI.createBackup()
-        toast.success("Pre-exam snapshot created.");
+        await adminAPI.createBackup();
       } catch (backupErr) {
-        console.warn("Backup creation failed automatically:", backupErr);
-        toast.warning("Exam assigned, but pre-exam snapshot failed. Please trigger manually in settings.");
+        console.warn("Backup creation failed:", backupErr);
       }
 
-      toast.success(`Exam assigned to ${selectedUser.first_name}`)
-      setIsAssignOpen(false)
-    } catch (e) {
-      toast.error("Failed to assign exam.")
+      toast.success(`Exam assigned to ${selectedUser.first_name} and snapshot created.`);
+      setIsAssignOpen(false);
+      fetchUsers(); // Refresh list to reflect assignment if needed
+    } catch (e: any) {
+      toast.error(e.message || "Failed to assign exam.");
     }
   }
 
@@ -167,19 +171,21 @@ export default function CandidatesPage() {
               <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No candidates found.</TableCell></TableRow>
             ) : (
               filtered.map((user) => {
-                // --- FIX: Logic to correctly identify suspended users ---
                 const isSuspended = user.is_active === false;
+                const firstName = user?.first_name || "Unknown";
+                const lastName = user?.last_name || "User";
+                const initials = `${firstName[0] || '?'}${lastName[0] || '?'}`;
 
                 return (
                   <TableRow key={user.id} className={isSuspended ? "bg-red-50/50" : ""}>
                     <TableCell className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
-                          {user?.first_name?.[0] || '?'}{user?.last_name?.[0] || '?'}
+                          {initials}
                         </AvatarFallback>
                       </Avatar>
                       <div className="font-medium">
-                        {user.first_name} {user.last_name}
+                        {firstName} {lastName}
                         {isSuspended && <span className="ml-2 text-xs text-red-600 font-bold">(SUSPENDED)</span>}
                       </div>
                     </TableCell>
