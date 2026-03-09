@@ -1,7 +1,7 @@
 // lib/api.ts
 
 import { authStorage } from "./auth"
-import type { User, AuthResponse } from "./types"
+import type { User, AuthResponse } from "./type"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://cpt-cpt.ciltra.org";
 
@@ -150,6 +150,9 @@ export const adminAPI = {
     createUser: (userData: any) => post<any>("/users/", userData),
     updateUser: (id: number, userData: any) => patch<any>(`/users/${id}/`, userData),
     deleteUser: (id: number) => del<any>(`/users/${id}/`),
+    resetUserPassword: (id: number) => post<any>(`/users/${id}/reset-password/`),
+    unlockUser: (id: number) => post<any>(`/users/${id}/unlock/`),
+    exportUsers: (role?: string) => get<any>(`/users/export/${role ? `?role=${role}` : ""}`),
 
     // --- Candidates ---
     getCandidates: () => get<any[]>("/admin/candidates/"),

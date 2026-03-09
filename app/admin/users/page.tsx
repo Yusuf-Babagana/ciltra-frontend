@@ -9,7 +9,12 @@ import {
     ShieldCheck,
     UserCheck,
     Pencil,
-    Trash2
+    Trash2,
+    UserX,
+    KeyRound,
+    Unlock,
+    Download,
+    Filter
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -57,9 +62,12 @@ interface UserTableProps {
     users: any[]
     onEdit: (user: any) => void
     onDelete: (id: number) => void
+    onToggleStatus: (user: any) => void
+    onResetPassword: (id: number) => void
+    onUnlock: (id: number) => void
 }
 
-function UserTable({ users, onEdit, onDelete }: UserTableProps) {
+function UserTable({ users, onEdit, onDelete, onToggleStatus, onResetPassword, onUnlock }: UserTableProps) {
     const getRoleBadge = (role: string) => {
         switch (role) {
             case 'admin': return <Badge variant="destructive" className="flex gap-1 items-center w-fit"><ShieldAlert className="w-3 h-3" /> Admin</Badge>
@@ -75,7 +83,8 @@ function UserTable({ users, onEdit, onDelete }: UserTableProps) {
                 <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Date Joined</TableHead>
+                    <TableHead>Competencies</TableHead>
+                    <TableHead>Security & Access</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
@@ -90,37 +99,73 @@ function UserTable({ users, onEdit, onDelete }: UserTableProps) {
                                 </div>
                             </TableCell>
                             <TableCell>{getRoleBadge(user.role)}</TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                                {new Date(user.date_joining || user.date_joined).toLocaleDateString()}
+                            <TableCell>
+                                <div className="text-xs space-y-1">
+                                    {user.language_pair && <p><strong>Pair:</strong> {user.language_pair}</p>}
+                                    {user.specialization && <p><strong>Spec:</strong> {user.specialization}</p>}
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="text-xs space-y-1">
+                                    <p className="text-muted-foreground">
+                                        Last Login: {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+                                    </p>
+                                    <p className="text-muted-foreground">IP: {user.last_login_ip || 'N/A'}</p>
+                                    {user.is_locked_out && (
+                                        <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 flex gap-1 items-center w-fit">
+                                            Locked Out
+                                        </Badge>
+                                    )}
+                                </div>
                             </TableCell>
                             <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Open menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className={user.is_active ? "text-red-600 border-red-200 hover:bg-red-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}
+                                        onClick={() => onToggleStatus(user)}
+                                    >
+                                        {user.is_active ? <UserX className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                                    </Button>
+
+                                    {user.is_locked_out && (
+                                        <Button size="sm" variant="outline" onClick={() => onUnlock(user.id)}>
+                                            <Unlock className="h-4 w-4" />
                                         </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => onEdit(user)}>
-                                            <Pencil className="mr-2 h-4 w-4" /> Edit Details
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            className="text-red-600"
-                                            onClick={() => onDelete(user.id)}
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4" /> Delete User
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                    )}
+
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">Open menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => onEdit(user)}>
+                                                <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => onResetPassword(user.id)}>
+                                                <KeyRound className="mr-2 h-4 w-4" /> Reset Password
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                className="text-red-600"
+                                                onClick={() => onDelete(user.id)}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" /> Delete User
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
+                        <TableCell colSpan={5} className="h-24 text-center">
                             No users found.
                         </TableCell>
                     </TableRow>
@@ -144,7 +189,9 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
         email: "",
         password: "",
         role: "examiner",
-        competencies: ""
+        language_pair: "",
+        direction: "AB",
+        specialization: "General"
     })
     const [isSaving, setIsSaving] = useState(false)
 
@@ -154,9 +201,11 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
                 first_name: user.first_name || "",
                 last_name: user.last_name || "",
                 email: user.email || "",
-                password: "", // Don't populate password on edit
+                password: "",
                 role: user.role || "examiner",
-                competencies: user.competencies || ""
+                language_pair: user.language_pair || "",
+                direction: user.direction || "AB",
+                specialization: user.specialization || "General"
             })
         } else {
             setFormData({
@@ -165,7 +214,9 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
                 email: "",
                 password: "",
                 role: "examiner",
-                competencies: ""
+                language_pair: "",
+                direction: "AB",
+                specialization: "General"
             })
         }
     }, [user, isOpen])
@@ -183,82 +234,124 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>{user ? "Edit User" : "Add New User"}</DialogTitle>
                     <DialogDescription>
-                        {user ? "Update user details below." : "Enter details for the new user account."}
+                        {user ? "Update user details and competencies below." : "Enter details for the new user account."}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="fname">First Name</Label>
-                                <Input
-                                    id="fname"
-                                    required
-                                    value={formData.first_name}
-                                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                                />
+                    <div className="grid gap-6 py-4">
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold border-b pb-2">Basic Information</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="fname">First Name</Label>
+                                    <Input
+                                        id="fname"
+                                        required
+                                        value={formData.first_name}
+                                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="lname">Last Name</Label>
+                                    <Input
+                                        id="lname"
+                                        required
+                                        value={formData.last_name}
+                                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                    />
+                                </div>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="lname">Last Name</Label>
+                                <Label htmlFor="email">Email Address</Label>
                                 <Input
-                                    id="lname"
+                                    id="email"
+                                    type="email"
                                     required
-                                    value={formData.last_name}
-                                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 />
                             </div>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                required
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-                        {!user && (
+                            {!user && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="password">Temporary Password</Label>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        required
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    />
+                                </div>
+                            )}
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Temporary Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                />
+                                <Label htmlFor="role">Role</Label>
+                                <Select
+                                    value={formData.role}
+                                    onValueChange={(val) => setFormData({ ...formData, role: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="admin">Administrator</SelectItem>
+                                        <SelectItem value="examiner">Examiner</SelectItem>
+                                        <SelectItem value="grader">Grader</SelectItem>
+                                        <SelectItem value="candidate">Candidate</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
-                        )}
-                        <div className="grid gap-2">
-                            <Label htmlFor="role">Role</Label>
-                            <Select
-                                value={formData.role}
-                                onValueChange={(val) => setFormData({ ...formData, role: val })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="admin">Administrator</SelectItem>
-                                    <SelectItem value="examiner">Examiner</SelectItem>
-                                    <SelectItem value="grader">Grader</SelectItem>
-                                    <SelectItem value="candidate">Candidate</SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="competencies">Competencies (Optional)</Label>
-                            <Input
-                                id="competencies"
-                                value={formData.competencies}
-                                onChange={(e) => setFormData({ ...formData, competencies: e.target.value })}
-                                placeholder="e.g. English, French, Technical Writing"
-                            />
+
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold border-b pb-2">Competencies & Settings</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="lang_pair">Language Pair (e.g. EN-FR)</Label>
+                                    <Input
+                                        id="lang_pair"
+                                        value={formData.language_pair}
+                                        onChange={(e) => setFormData({ ...formData, language_pair: e.target.value })}
+                                        placeholder="EN-FR"
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="direction">Direction</Label>
+                                    <Select
+                                        value={formData.direction}
+                                        onValueChange={(val) => setFormData({ ...formData, direction: val })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="AB">A → B</SelectItem>
+                                            <SelectItem value="BA">B → A</SelectItem>
+                                            <SelectItem value="BOTH">Both Directions</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="specialization">Specialization</Label>
+                                <Select
+                                    value={formData.specialization}
+                                    onValueChange={(val) => setFormData({ ...formData, specialization: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="General">General</SelectItem>
+                                        <SelectItem value="Medical">Medical</SelectItem>
+                                        <SelectItem value="Legal">Legal</SelectItem>
+                                        <SelectItem value="Technical">Technical</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
@@ -280,6 +373,7 @@ export default function UserManagementPage() {
     const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
+    const [roleFilter, setRoleFilter] = useState("all")
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<any | null>(null)
 
@@ -321,7 +415,7 @@ export default function UserManagementPage() {
                 title: "Failed",
                 description: error.message || "Could not complete operation."
             })
-            throw error // Let the modal handles progress state
+            throw error
         }
     }
 
@@ -341,10 +435,63 @@ export default function UserManagementPage() {
         }
     }
 
-    const filteredUsers = users.filter(user =>
-        (user.first_name + " " + user.last_name).toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const handleToggleStatus = async (user: any) => {
+        const action = user.is_active ? "suspend" : "activate"
+        if (confirm(`Are you sure you want to ${action} this user?`)) {
+            try {
+                await adminAPI.updateUser(user.id, { is_active: !user.is_active })
+                setUsers(users.map(u => u.id === user.id ? { ...u, is_active: !user.is_active } : u))
+                toast({ title: "Status Updated", description: `User has been ${action}ed.` })
+            } catch (error: any) {
+                toast({ variant: "destructive", title: "Error", description: error.message })
+            }
+        }
+    }
+
+    const handleResetPassword = async (id: number) => {
+        if (confirm("Reset password for this user? They will receive a new temporary password.")) {
+            try {
+                await adminAPI.resetUserPassword(id)
+                toast({ title: "Password Reset", description: "Password reset request logged and processed." })
+            } catch (error: any) {
+                toast({ variant: "destructive", title: "Reset Failed", description: error.message })
+            }
+        }
+    }
+
+    const handleUnlock = async (id: number) => {
+        try {
+            await adminAPI.unlockUser(id)
+            setUsers(users.map(u => u.id === id ? { ...u, is_locked_out: false } : u))
+            toast({ title: "Account Unlocked", description: "User can now attempt to login again." })
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Unlock Failed", description: error.message })
+        }
+    }
+
+    const handleExport = async () => {
+        try {
+            const blob = await adminAPI.exportUsers(roleFilter === 'all' ? undefined : roleFilter)
+            const url = window.URL.createObjectURL(new Blob([blob]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+            toast({ title: "Export Complete", description: "User list has been exported to CSV." })
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Export Failed", description: error.message })
+        }
+    }
+
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = (user.first_name + " " + user.last_name).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesRole = roleFilter === "all" || user.role === roleFilter
+        return matchesSearch && matchesRole
+    })
 
     if (loading) return (
         <div className="space-y-6">
@@ -362,19 +509,24 @@ export default function UserManagementPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
                     <p className="text-muted-foreground">
-                        Manage administrators, examiners, and graders.
+                        Manage administrators, examiners, graders, and candidates.
                     </p>
                 </div>
-                <Button onClick={() => { setEditingUser(null); setIsModalOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add User
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleExport}>
+                        <Download className="mr-2 h-4 w-4" /> Export CSV
+                    </Button>
+                    <Button onClick={() => { setEditingUser(null); setIsModalOpen(true); }}>
+                        <Plus className="mr-2 h-4 w-4" /> Add User
+                    </Button>
+                </div>
             </div>
 
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <CardTitle>System Users</CardTitle>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -385,6 +537,21 @@ export default function UserManagementPage() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
+                            <div className="flex items-center gap-2 bg-muted p-1 rounded-md">
+                                <Filter className="h-4 w-4 ml-2 text-muted-foreground" />
+                                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                                    <SelectTrigger className="w-[150px] border-none bg-transparent h-8">
+                                        <SelectValue placeholder="All Roles" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Roles</SelectItem>
+                                        <SelectItem value="admin">Admins</SelectItem>
+                                        <SelectItem value="examiner">Examiners</SelectItem>
+                                        <SelectItem value="grader">Graders</SelectItem>
+                                        <SelectItem value="candidate">Candidates</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -393,6 +560,9 @@ export default function UserManagementPage() {
                         users={filteredUsers}
                         onEdit={(user) => { setEditingUser(user); setIsModalOpen(true); }}
                         onDelete={handleDelete}
+                        onToggleStatus={handleToggleStatus}
+                        onResetPassword={handleResetPassword}
+                        onUnlock={handleUnlock}
                     />
                 </CardContent>
             </Card>
