@@ -234,18 +234,18 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+                <DialogHeader className="p-6 pb-0">
                     <DialogTitle>{user ? "Edit User" : "Add New User"}</DialogTitle>
                     <DialogDescription>
                         {user ? "Update user details and competencies below." : "Enter details for the new user account."}
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit}>
-                    <div className="grid gap-6 py-4">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
                         <div className="space-y-4">
                             <h3 className="text-sm font-semibold border-b pb-2">Basic Information</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="fname">First Name</Label>
                                     <Input
@@ -265,15 +265,34 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
                                     />
                                 </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        required
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="role">Role</Label>
+                                    <Select
+                                        value={formData.role}
+                                        onValueChange={(val) => setFormData({ ...formData, role: val })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a role" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="admin">Administrator</SelectItem>
+                                            <SelectItem value="examiner">Examiner</SelectItem>
+                                            <SelectItem value="grader">Grader</SelectItem>
+                                            <SelectItem value="candidate">Candidate</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                             {!user && (
                                 <div className="grid gap-2">
@@ -287,28 +306,11 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
                                     />
                                 </div>
                             )}
-                            <div className="grid gap-2">
-                                <Label htmlFor="role">Role</Label>
-                                <Select
-                                    value={formData.role}
-                                    onValueChange={(val) => setFormData({ ...formData, role: val })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="admin">Administrator</SelectItem>
-                                        <SelectItem value="examiner">Examiner</SelectItem>
-                                        <SelectItem value="grader">Grader</SelectItem>
-                                        <SelectItem value="candidate">Candidate</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         </div>
 
                         <div className="space-y-4">
                             <h3 className="text-sm font-semibold border-b pb-2">Competencies & Settings</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="lang_pair">Language Pair (e.g. EN-FR)</Label>
                                     <Input
@@ -354,7 +356,7 @@ function UserModal({ isOpen, onOpenChange, user, onSave }: UserModalProps) {
                             </div>
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="p-6 pt-0 mt-0">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                         <Button type="submit" disabled={isSaving}>
                             {isSaving ? "Saving..." : (user ? "Update User" : "Create User")}
