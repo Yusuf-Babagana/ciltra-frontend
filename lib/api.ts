@@ -150,9 +150,29 @@ export const adminAPI = {
     createUser: (userData: any) => post<any>("/users/", userData),
     updateUser: (id: number, userData: any) => patch<any>(`/users/${id}/`, userData),
     deleteUser: (id: number) => del<any>(`/users/${id}/`),
-    resetUserPassword: (id: number) => post<any>(`/users/${id}/reset-password/`),
-    unlockUser: (id: number) => post<any>(`/users/${id}/unlock/`),
-    exportUsers: (role?: string) => get<any>(`/users/export/${role ? `?role=${role}` : ""}`),
+
+    // --- ENHANCED USER CONTROLS ---
+    toggleUserStatus: (id: number) =>
+        post<any>(`/users/${id}/toggle-status/`),
+
+    resetUserPassword: (id: number) =>
+        post<any>(`/users/${id}/reset_password/`),
+
+    unlockUser: (id: number) =>
+        post<any>(`/users/${id}/unlock/`),
+
+    exportUsers: async (role?: string): Promise<Blob> => {
+        const token = authStorage.getAccessToken()
+        const url = role ? `/users/export/?role=${role}` : '/users/export/'
+        const response = await fetch(`${API_BASE_URL}${url}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'text/csv'
+            }
+        })
+        if (!response.ok) throw new Error("Export failed")
+        return response.blob()
+    },
 
     // --- Candidates ---
     getCandidates: () => get<any[]>("/admin/candidates/"),
