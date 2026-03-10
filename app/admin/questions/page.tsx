@@ -154,11 +154,19 @@ export default function ContentBankPage() {
           accept=".csv"
           onChange={handleBulkUpload}
         />
-        <Button asChild variant="outline" className="cursor-pointer border-indigo-200 hover:bg-indigo-50">
-          <label htmlFor="bulk-question-upload">
-            <Plus className="mr-2 h-4 w-4 text-indigo-600" /> Select CSV File
-          </label>
-        </Button>
+        <div className="flex justify-center gap-3">
+          <Button asChild variant="outline" className="cursor-pointer border-indigo-200 hover:bg-indigo-50">
+            <label htmlFor="bulk-question-upload">
+              <Plus className="mr-2 h-4 w-4 text-indigo-600" /> Select CSV File
+            </label>
+          </Button>
+
+          <Button variant="ghost" asChild className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-transparent hover:border-indigo-100">
+            <a href={`${process.env.NEXT_PUBLIC_API_URL}/questions/bulk-upload/template/`}>
+              <FileText className="mr-2 h-4 w-4" /> Download Template (CSV)
+            </a>
+          </Button>
+        </div>
       </div>
 
       <Card>
