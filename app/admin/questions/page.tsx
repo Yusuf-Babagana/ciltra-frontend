@@ -81,26 +81,23 @@ export default function ContentBankPage() {
     }
   };
 
-  const handleTemplateDownload = async () => {
-    try {
-      const blob = await adminAPI.getQuestionTemplate()
-      const url = window.URL.createObjectURL(new Blob([blob]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `question_template.csv`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-      toast({ title: "Ready", description: "Question template downloaded." })
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Download Failed",
-        description: error.message
-      })
-    }
-  }
+  const handleTemplateDownload = () => {
+    const csvContent = [
+      ["question_type", "question_text", "options", "language_pair", "points"],
+      ["mcq", "Sample MCQ Question", "Option A:True|Option B:False|Option C:False|Option D:False", "Global", "5"],
+      ["theory", "Sample Translation or Essay Question", "", "EN-FR", "20"]
+    ].map(e => e.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "ciltra_question_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Template Downloaded", description: "Use this format for bulk uploads." });
+  };
 
   const handleApprove = async (id: number) => {
     try {

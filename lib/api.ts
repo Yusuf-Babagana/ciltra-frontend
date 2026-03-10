@@ -203,18 +203,6 @@ export const adminAPI = {
     uploadQuestions: (formData: FormData) =>
         post<any>("/questions/bulk-upload/", formData, true),
 
-    getQuestionTemplate: async (): Promise<Blob> => {
-        const token = authStorage.getAccessToken()
-        const response = await fetch(`${API_BASE_URL}/questions/bulk-upload/template/`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'text/csv'
-            }
-        })
-        if (!response.ok) throw new Error("Template download failed")
-        return response.blob()
-    },
-
     approveQuestion: (id: number) => post<any>(`/questions/${id}/approve/`),
 
     // --- Grading ---
