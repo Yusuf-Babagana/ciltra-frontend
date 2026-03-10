@@ -21,7 +21,8 @@ import {
   Search,
   Filter,
   Loader2,
-  Plus
+  Plus,
+  FileText
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
