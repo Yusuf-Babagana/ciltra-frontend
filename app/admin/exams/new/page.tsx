@@ -172,6 +172,7 @@ export default function NewExamPage() {
   } = useForm<ExamForm>({
     resolver: zodResolver(examSchema),
     defaultValues: {
+      category: "CPT",
       duration_minutes: 180,
       passing_score: 70,
       price: 0,
@@ -195,8 +196,16 @@ export default function NewExamPage() {
     setError("")
     try {
       const payload = {
-        ...data,
-        pass_score: data.passing_score, // Map to Django field name
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        duration_minutes: data.duration_minutes,
+        pass_score: data.passing_score,
+        price: data.price,
+        payment_link: data.payment_link,
+        language_pair: data.language_pair,
+        is_blueprint: data.is_blueprint,
+        is_active: true,
         ca_weight: data.weight_section_a,
         exam_weight: data.weight_section_b,
         practical_weight: data.weight_section_c,
@@ -205,10 +214,16 @@ export default function NewExamPage() {
           .map(([k]) => k),
       }
       const newExam: any = await adminAPI.createExam(payload)
-      toast({ title: "Success", description: "Exam created. You can now add questions." })
+      toast({ title: "Success", description: "Exam created successfully!" })
       router.push(newExam?.id ? `/admin/exams/${newExam.id}` : "/admin/exams")
     } catch (err: any) {
-      setError(err.message || "Failed to create exam")
+      const msg = err.message || "Failed to create exam"
+      setError(msg)
+      toast({
+        variant: "destructive",
+        title: "Error Creating Exam",
+        description: msg
+      })
     } finally {
       setIsLoading(false)
     }
