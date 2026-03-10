@@ -196,6 +196,10 @@ export default function NewExamPage() {
     try {
       const payload = {
         ...data,
+        pass_score: data.passing_score, // Map to Django field name
+        ca_weight: data.weight_section_a,
+        exam_weight: data.weight_section_b,
+        practical_weight: data.weight_section_c,
         specializations: Object.entries(activeSpecs)
           .filter(([, v]) => v)
           .map(([k]) => k),
@@ -420,8 +424,8 @@ export default function NewExamPage() {
             {/* Running total indicator */}
             <div
               className={`flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium border ${weightSum === 100
-                  ? "bg-green-50 border-green-200 text-green-700"
-                  : "bg-red-50 border-red-200 text-red-700"
+                ? "bg-green-50 border-green-200 text-green-700"
+                : "bg-red-50 border-red-200 text-red-700"
                 }`}
             >
               <span>Total weight</span>
