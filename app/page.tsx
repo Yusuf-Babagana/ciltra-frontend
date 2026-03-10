@@ -51,15 +51,15 @@ export default function HomePage() {
               <Shield className="w-3 h-3" /> Official CILTRA Certification Platform
             </div>
 
-            <h1 className="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-6xl md:text-7xl mb-6">
-              Translator (CPT) Certification Platform<span className="text-primary relative inline-block">
+            <h3 className="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-6xl md:text-7xl mb-6">
+              Certified Professional Translator (CPT) Certification Platform<span className="text-primary relative inline-block">
                 -
                 {/* Underline decoration */}
                 <svg className="absolute w-full h-3 -bottom-1 left-0 text-yellow-400 opacity-60" viewBox="0 0 100 10" preserveAspectRatio="none">
                   <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="3" fill="none" />
                 </svg>
               </span>
-            </h1>
+            </h3>
 
             <p className="mx-auto max-w-2xl text-lg md:text-xl text-slate-600 dark:text-slate-300 leading-relaxed mb-10">
               Earn the <strong>Certified Professional Translator (CPT)</strong> credential.
