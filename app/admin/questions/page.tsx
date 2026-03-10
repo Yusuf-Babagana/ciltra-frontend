@@ -81,6 +81,27 @@ export default function ContentBankPage() {
     }
   };
 
+  const handleTemplateDownload = async () => {
+    try {
+      const blob = await adminAPI.getQuestionTemplate()
+      const url = window.URL.createObjectURL(new Blob([blob]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `question_template.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      toast({ title: "Ready", description: "Question template downloaded." })
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: error.message
+      })
+    }
+  }
+
   const handleApprove = async (id: number) => {
     try {
       await adminAPI.approveQuestion(id)
@@ -162,10 +183,12 @@ export default function ContentBankPage() {
             </label>
           </Button>
 
-          <Button variant="ghost" asChild className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-transparent hover:border-indigo-100">
-            <a href={`${process.env.NEXT_PUBLIC_API_URL}/questions/bulk-upload/template/`}>
-              <FileText className="mr-2 h-4 w-4" /> Download Template (CSV)
-            </a>
+          <Button
+            variant="ghost"
+            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border border-transparent hover:border-indigo-100"
+            onClick={handleTemplateDownload}
+          >
+            <FileText className="mr-2 h-4 w-4" /> Download Template (CSV)
           </Button>
         </div>
       </div>
