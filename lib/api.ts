@@ -368,6 +368,9 @@ export const studentAPI = {
     syncHeartbeat: (sessionId: number, data: { question_id: number, text_answer: string }) =>
         post<any>(`/exams/session/${sessionId}/heartbeat/`, data),
 
+    logIntegrityEvent: (sessionId: number, data: { event_type: string, details: string }) =>
+        post<any>(`/assessments/session/${sessionId}/integrity-log/`, data),
+
     // --- Certificates ---
     getCertificates: () => get<any[]>("/certificates/"),
 

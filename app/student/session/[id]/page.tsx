@@ -29,6 +29,7 @@ import { useToast } from "@/components/ui/use-toast"
 import TranslationWorkspace from "../components/TranslationWorkspace"
 import SubmitAuditModal from "../components/SubmitModal"
 import { useHeartbeat } from "./hooks/useHeartbeat"
+import { useProctoring } from "./hooks/useProctoring"
 
 export default function ExamSessionPage() {
     const { id } = useParams()
@@ -96,6 +97,9 @@ export default function ExamSessionPage() {
         currentQuestion?.id,
         currentQuestion?.section === "Section B" ? answers[currentQuestion.id] : ""
     )
+
+    // Security Monitoring
+    useProctoring(Number(id))
 
     const handleAutoSubmit = async () => {
         if (isSubmitting) return
@@ -211,8 +215,8 @@ export default function ExamSessionPage() {
                                                 key={q.id}
                                                 onClick={() => setCurrentQuestionIndex(qIdx)}
                                                 className={`w-full flex items-center justify-between p-3 rounded-xl text-sm transition-all duration-200 border ${isActive
-                                                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-bold shadow-sm'
-                                                        : 'border-transparent text-slate-600 hover:bg-slate-50 hover:border-slate-200'
+                                                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-bold shadow-sm'
+                                                    : 'border-transparent text-slate-600 hover:bg-slate-50 hover:border-slate-200'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
