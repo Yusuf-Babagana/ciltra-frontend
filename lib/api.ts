@@ -179,6 +179,7 @@ export const adminAPI = {
 
     // --- Exam Management ---
     getExams: () => get<any[]>("/exams/"),
+    // Add the trailing slash here:
     createExam: (examData: any) => post<any>("/exams/", examData),
     updateExam: (id: string | number, examData: any) => put<any>(`/exams/${id}/`, examData),
     deleteExam: (id: string | number) => del<any>(`/exams/${id}/`),
