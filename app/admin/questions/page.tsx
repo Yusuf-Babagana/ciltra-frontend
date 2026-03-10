@@ -54,6 +54,32 @@ export default function ContentBankPage() {
     }
   }
 
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setLoading(true);
+      await adminAPI.uploadQuestions(formData);
+      toast({
+        title: "Success",
+        description: "Bulk questions uploaded and pending review."
+      });
+      fetchContent();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message || "Could not process CSV file."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApprove = async (id: number) => {
     try {
       await adminAPI.approveQuestion(id)
@@ -113,6 +139,25 @@ export default function ContentBankPage() {
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" /> Add Content
+        </Button>
+      </div>
+
+      <div className="bg-indigo-50/50 p-6 rounded-lg border-2 border-dashed border-indigo-200 text-center">
+        <h3 className="text-lg font-semibold mb-1">Bulk Question Import</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Upload a CSV with columns: <strong>question_type</strong>, <strong>question_text</strong>, <strong>language_pair</strong>, etc.
+        </p>
+        <input
+          type="file"
+          id="bulk-question-upload"
+          className="hidden"
+          accept=".csv"
+          onChange={handleBulkUpload}
+        />
+        <Button asChild variant="outline" className="cursor-pointer border-indigo-200 hover:bg-indigo-50">
+          <label htmlFor="bulk-question-upload">
+            <Plus className="mr-2 h-4 w-4 text-indigo-600" /> Select CSV File
+          </label>
         </Button>
       </div>
 
