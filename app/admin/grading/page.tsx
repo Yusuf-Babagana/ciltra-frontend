@@ -108,6 +108,24 @@ export default function GradingPage() {
         }
     };
 
+    const handleTemplateDownload = () => {
+        const csvContent = [
+            ["session_id", "score", "comment"],
+            ["123", "85", "Great translation quality"],
+            ["124", "70", "Minor grammar issues, please review"]
+        ].map(e => e.join(",")).join("\n");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "grading_results_template.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Grading template downloaded");
+    };
+
     const submitGrades = async () => {
         if (!selectedSession) return
         setIsSubmitting(true)
@@ -149,10 +167,8 @@ export default function GradingPage() {
                         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Bulk Grading (15/65/20)</h3>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                            <a href={`${process.env.NEXT_PUBLIC_API_URL}/export-results/`}>
-                                <FileText className="mr-2 h-4 w-4" /> Template
-                            </a>
+                        <Button variant="outline" size="sm" onClick={handleTemplateDownload}>
+                            <FileText className="mr-2 h-4 w-4" /> Template
                         </Button>
 
                         <Label className="h-9 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center text-sm font-medium cursor-pointer transition-colors">
