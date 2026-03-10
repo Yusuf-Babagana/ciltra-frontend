@@ -81,6 +81,33 @@ export default function GradingPage() {
         setComments(prev => ({ ...prev, [questionId]: value }))
     }
 
+    const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload-results/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                }
+            });
+
+            if (response.ok) {
+                toast.success("Grading updated successfully!");
+                fetchPending();
+            } else {
+                toast.error("Upload failed");
+            }
+        } catch (error) {
+            toast.error("An error occurred during upload");
+        }
+    };
+
     const submitGrades = async () => {
         if (!selectedSession) return
         setIsSubmitting(true)
@@ -111,9 +138,29 @@ export default function GradingPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Pending Grading</h1>
-                <p className="text-muted-foreground">Review translations and essay answers.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Pending Grading</h1>
+                    <p className="text-muted-foreground">Review translations and essay answers.</p>
+                </div>
+
+                <div className="p-4 border rounded-lg bg-white shadow-sm flex flex-col sm:flex-row items-center gap-4">
+                    <div className="text-center sm:text-left">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Bulk Grading (15/65/20)</h3>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                            <a href={`${process.env.NEXT_PUBLIC_API_URL}/export-results/`}>
+                                <FileText className="mr-2 h-4 w-4" /> Template
+                            </a>
+                        </Button>
+
+                        <Label className="h-9 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center text-sm font-medium cursor-pointer transition-colors">
+                            <CheckCircle className="mr-2 h-4 w-4" /> Upload Scores
+                            <input type="file" onChange={handleUpload} className="hidden" accept=".csv" />
+                        </Label>
+                    </div>
+                </div>
             </div>
 
             {isLoading ? (

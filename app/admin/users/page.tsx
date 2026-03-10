@@ -388,6 +388,37 @@ export default function UserManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<any | null>(null)
 
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bulk-register/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                toast({ title: "Bulk Registration", description: data.message });
+                if (data.skipped?.length > 0) {
+                    console.log("Skipped:", data.skipped);
+                }
+                fetchUsers();
+            } else {
+                toast({ variant: "destructive", title: "Upload Failed", description: data.message || "Could not register users." });
+            }
+        } catch (err) {
+            toast({ variant: "destructive", title: "Upload Failed", description: "Check console for details." });
+        }
+    };
+
     useEffect(() => {
         fetchUsers()
     }, [])
@@ -531,6 +562,24 @@ export default function UserManagementPage() {
                         <Plus className="mr-2 h-4 w-4" /> Add User
                     </Button>
                 </div>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-lg border-2 border-dashed border-slate-200 text-center">
+                <h3 className="text-lg font-semibold mb-1">Register Multiple Students</h3>
+                <p className="text-sm text-muted-foreground mb-4">Upload a CSV with columns: <strong>email</strong>, <strong>full_name</strong></p>
+
+                <input
+                    type="file"
+                    id="bulk-upload"
+                    className="hidden"
+                    accept=".csv"
+                    onChange={handleBulkUpload}
+                />
+                <Button asChild className="cursor-pointer">
+                    <label htmlFor="bulk-upload">
+                        <Plus className="mr-2 h-4 w-4" /> Select CSV File
+                    </label>
+                </Button>
             </div>
 
             <Card>
