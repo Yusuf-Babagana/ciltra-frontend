@@ -443,7 +443,7 @@ export default function UserManagementPage() {
         try {
             setLoading(true)
             const data = await adminAPI.getUsers(viewingTrash)
-            setUsers(data)
+            setUsers(Array.isArray(data) ? data : [])
         } catch (error) {
             console.error("Failed to fetch users", error)
             toast({
