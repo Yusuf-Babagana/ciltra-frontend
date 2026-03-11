@@ -27,7 +27,7 @@ import {
 } from "lucide-react"
 
 export default function BackupPage() {
-    const [backups, setBackups] = useState<string[]>([])
+    const [backups, setBackups] = useState<{ filename: string; size_formatted?: string; created_at?: string }[]>([])
     const [loading, setLoading] = useState(true)
     const [restoring, setRestoring] = useState<string | null>(null)
     const [isDownloading, setIsDownloading] = useState<string | null>(null)
@@ -153,25 +153,29 @@ export default function BackupPage() {
                         <TableHeader className="bg-slate-50/80">
                             <TableRow>
                                 <TableHead className="py-4 pl-6 text-slate-900 font-bold">Snapshot Name</TableHead>
-                                <TableHead className="text-slate-900 font-bold">Type</TableHead>
+                                <TableHead className="text-slate-900 font-bold">Size</TableHead>
+                                <TableHead className="text-slate-900 font-bold">Created At</TableHead>
                                 <TableHead className="text-right pr-6 text-slate-900 font-bold">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {(backups || []).map((file) => (
-                                <TableRow key={file} className="hover:bg-slate-50/50 transition-colors">
+                            {(backups || []).map((backup) => (
+                                <TableRow key={backup.filename} className="hover:bg-slate-50/50 transition-colors">
                                     <TableCell className="py-4 pl-6">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-blue-50 rounded-lg">
                                                 <Database size={18} className="text-blue-600" />
                                             </div>
-                                            <span className="font-mono text-sm font-semibold text-slate-700">{file}</span>
+                                            <span className="font-mono text-sm font-semibold text-slate-700">{backup.filename}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 uppercase text-[10px]">
-                                            SQLITE3
-                                        </Badge>
+                                        <span className="text-sm text-slate-500">{backup.size_formatted ?? '—'}</span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className="text-sm text-slate-500">
+                                            {backup.created_at ? new Date(backup.created_at).toLocaleString() : '—'}
+                                        </span>
                                     </TableCell>
                                     <TableCell className="text-right pr-6 space-x-2">
 
@@ -181,10 +185,10 @@ export default function BackupPage() {
                                             size="sm"
                                             title="Download Securely"
                                             className="text-blue-600 hover:bg-blue-50"
-                                            onClick={() => handleDownload(file)}
+                                            onClick={() => handleDownload(backup.filename)}
                                             disabled={isDownloading !== null}
                                         >
-                                            {isDownloading === file ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                            {isDownloading === backup.filename ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                                         </Button>
 
                                         {/* Restore */}
@@ -192,10 +196,10 @@ export default function BackupPage() {
                                             variant="outline"
                                             size="sm"
                                             className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                            onClick={() => handleRestore(file)}
+                                            onClick={() => handleRestore(backup.filename)}
                                             disabled={restoring !== null || isDownloading !== null}
                                         >
-                                            {restoring === file ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />}
+                                            {restoring === backup.filename ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />}
                                             Restore
                                         </Button>
 
@@ -204,7 +208,7 @@ export default function BackupPage() {
                                             variant="ghost"
                                             size="sm"
                                             className="text-slate-300 hover:text-red-600 hover:bg-red-50"
-                                            onClick={() => handleDelete(file)}
+                                            onClick={() => handleDelete(backup.filename)}
                                             disabled={restoring !== null || isDownloading !== null}
                                         >
                                             <Trash size={16} />
@@ -215,7 +219,7 @@ export default function BackupPage() {
 
                             {(!backups || backups.length === 0) && (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center py-20">
+                                    <TableCell colSpan={4} className="text-center py-20">
                                         <div className="flex flex-col items-center gap-3">
                                             <HardDriveDownload size={48} className="text-slate-200" />
                                             <p className="text-slate-400 font-medium text-lg">No backup snapshots found.</p>
