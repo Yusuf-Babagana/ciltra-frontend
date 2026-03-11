@@ -401,6 +401,7 @@ export default function UserManagementPage() {
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [roleFilter, setRoleFilter] = useState("all")
+    const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<any | null>(null)
     const [viewingTrash, setViewingTrash] = useState(false)
 
@@ -561,9 +562,14 @@ export default function UserManagementPage() {
     }
 
     const filteredUsers = users.filter(user => {
-        const matchesSearch = (user.first_name + " " + user.last_name).toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesRole = roleFilter === "all" || user.role === roleFilter
+        const firstName = user?.first_name || ""
+        const lastName = user?.last_name || ""
+        const email = user?.email || ""
+        const role = user?.role || ""
+
+        const matchesSearch = (firstName + " " + lastName).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            email.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesRole = roleFilter === "all" || role === roleFilter
         return matchesSearch && matchesRole
     })
 
