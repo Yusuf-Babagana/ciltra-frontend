@@ -14,6 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog" // Import Dialog components
+import {
   CheckCircle,
   Lock,
   Edit3,
@@ -34,6 +41,11 @@ export default function ContentBankPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
+  // --- NEW: State for Modal/Form ---
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<any>(null)
+  const [formData, setFormData] = useState({ text: "", question_type: "MCQ", section: "Section A" })
+
   useEffect(() => {
     fetchContent()
   }, [])
@@ -42,7 +54,6 @@ export default function ContentBankPage() {
     try {
       setLoading(true)
       const data = await adminAPI.getQuestions()
-      // Critical: Check if data is actually an array before saving to state
       setContentItems(Array.isArray(data) ? data : [])
     } catch (error: any) {
       console.error("Failed to fetch content", error)
@@ -51,6 +62,41 @@ export default function ContentBankPage() {
         title: "Access Denied",
         description: "Please log in again to view questions."
       })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // --- FIXED: Modal Logic ---
+  const openModal = (item: any = null) => {
+    if (item) {
+      setEditingItem(item)
+      setFormData({
+        text: item.text || item.question_text || "",
+        question_type: item.question_type || "MCQ",
+        section: item.section || "Section A"
+      })
+    } else {
+      setEditingItem(null)
+      setFormData({ text: "", question_type: "MCQ", section: "Section A" })
+    }
+    setIsModalOpen(true)
+  }
+
+  const handleSave = async () => {
+    try {
+      setLoading(true)
+      if (editingItem) {
+        await adminAPI.updateQuestion(editingItem.id, formData)
+        toast({ title: "Updated", description: "Question updated successfully." })
+      } else {
+        await adminAPI.createQuestion(formData)
+        toast({ title: "Created", description: "New question added to bank." })
+      }
+      setIsModalOpen(false)
+      fetchContent()
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Save failed." })
     } finally {
       setLoading(false)
     }
@@ -157,7 +203,8 @@ export default function ContentBankPage() {
           <h1 className="text-3xl font-bold tracking-tight">Content Bank</h1>
           <p className="text-muted-foreground">Manage MCQs, Case Scenarios, and Translation Briefs.</p>
         </div>
-        <Button>
+        {/* FIXED: Added onClick handler */}
+        <Button onClick={() => openModal()}>
           <Plus className="mr-2 h-4 w-4" /> Add Content
         </Button>
       </div>
@@ -269,7 +316,8 @@ export default function ContentBankPage() {
                           <CheckCircle size={14} className="mr-1" /> Approve
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm"><Edit3 size={14} /></Button>
+                      {/* FIXED: Added onClick to open modal for editing */}
+                      <Button variant="ghost" size="sm" onClick={() => openModal(item)}><Edit3 size={14} /></Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -292,6 +340,54 @@ export default function ContentBankPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* NEW: Add/Edit Dialog */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingItem ? "Edit Question" : "Add New Question"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Question Text</label>
+              <Input
+                value={formData.text}
+                onChange={(e) => setFormData({ ...formData, text: e.target.value })}
+                placeholder="Type your question prompt..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Question Type</label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={formData.question_type}
+                  onChange={(e) => setFormData({ ...formData, question_type: e.target.value })}
+                >
+                  <option value="MCQ">Multiple Choice</option>
+                  <option value="THEORY">Theory / Translation</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Exam Section</label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={formData.section}
+                  onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                >
+                  <option value="Section A">Section A (Knowledge)</option>
+                  <option value="Section B">Section B (Practical)</option>
+                  <option value="Section C">Section C (Oral/Tools)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>Save Content</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
