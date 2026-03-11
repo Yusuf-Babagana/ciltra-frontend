@@ -504,9 +504,12 @@ export default function UserManagementPage() {
         const action = user.is_active ? "suspend" : "activate"
         if (confirm(`Are you sure you want to ${action} this user?`)) {
             try {
-                await adminAPI.toggleUserStatus(user.id)
-                setUsers(users.map(u => u.id === user.id ? { ...u, is_active: !user.is_active } : u))
-                toast({ title: "Status Updated", description: `User has been ${action}ed.` })
+                const response = await adminAPI.toggleUserStatus(user.id)
+                if (response) {
+                    // Only update state if the API confirmed success
+                    setUsers(users.map(u => u.id === user.id ? { ...u, is_active: !user.is_active } : u))
+                    toast({ title: "Status Updated", description: `User has been ${action}ed.` })
+                }
             } catch (error: any) {
                 toast({ variant: "destructive", title: "Error", description: error.message })
             }
