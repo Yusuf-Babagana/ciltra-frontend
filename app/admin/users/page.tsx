@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { adminAPI } from "@/lib/api"
+import { authStorage } from "@/lib/auth"
 import { useToast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -417,7 +418,7 @@ export default function UserManagementPage() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${authStorage.getAccessToken()}`,
                 },
             });
             const data = await res.json();

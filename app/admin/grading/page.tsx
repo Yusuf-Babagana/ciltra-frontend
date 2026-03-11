@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { adminAPI } from "@/lib/api"
+import { authStorage } from "@/lib/auth"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -93,7 +94,7 @@ export default function GradingPage() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Authorization': `Bearer ${authStorage.getAccessToken()}`,
                 }
             });
 
