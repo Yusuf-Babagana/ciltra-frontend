@@ -201,6 +201,12 @@ export const adminAPI = {
 
     deleteQuestion: (id: number) => del<any>(`/questions/${id}/`),
 
+    // --- Language Pairs ---
+    getLanguagePairs: () => get<any[]>("/language-pairs/"),
+    createLanguagePair: (data: any) => post<any>("/language-pairs/", data),
+    updateLanguagePair: (id: number, data: any) => put<any>(`/language-pairs/${id}/`, data),
+    deleteLanguagePair: (id: number) => del<any>(`/language-pairs/${id}/`),
+
     uploadQuestions: (formData: FormData) =>
         post<any>("/questions/bulk-upload/", formData, true),
 
