@@ -146,10 +146,11 @@ export const adminAPI = {
         }>("/admin/stats/"),
 
     // --- User Management ---
-    getUsers: () => get<any[]>("/users/"),
+    getUsers: (showTrashed = false) => get<any[]>(`/users/?trashed=${showTrashed}`),
     createUser: (userData: any) => post<any>("/users/", userData),
     updateUser: (id: number, userData: any) => patch<any>(`/users/${id}/`, userData),
     deleteUser: (id: number) => del<any>(`/users/${id}/`),
+    restoreUser: (id: number) => post<any>(`/users/${id}/restore/`),
 
     // --- ENHANCED USER CONTROLS ---
     toggleUserStatus: (id: number) =>

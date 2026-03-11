@@ -14,7 +14,8 @@ import {
     KeyRound,
     Unlock,
     Download,
-    Filter
+    Filter,
+    RotateCcw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -60,14 +61,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 interface UserTableProps {
     users: any[]
+    viewingTrash?: boolean
     onEdit: (user: any) => void
     onDelete: (id: number) => void
     onToggleStatus: (user: any) => void
     onResetPassword: (id: number) => void
     onUnlock: (id: number) => void
+    onRestore?: (id: number) => void
 }
 
-function UserTable({ users, onEdit, onDelete, onToggleStatus, onResetPassword, onUnlock }: UserTableProps) {
+function UserTable({ users, viewingTrash, onEdit, onDelete, onToggleStatus, onResetPassword, onUnlock, onRestore }: UserTableProps) {
     const getRoleBadge = (role: string) => {
         switch (role) {
             case 'admin': return <Badge variant="destructive" className="flex gap-1 items-center w-fit"><ShieldAlert className="w-3 h-3" /> Admin</Badge>
@@ -129,45 +132,58 @@ function UserTable({ users, onEdit, onDelete, onToggleStatus, onResetPassword, o
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className={user.is_active ? "text-red-600 border-red-200 hover:bg-red-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}
-                                        onClick={() => onToggleStatus(user)}
-                                    >
-                                        {user.is_active ? <UserX className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
-                                    </Button>
-
-                                    {user.is_locked_out && (
-                                        <Button size="sm" variant="outline" onClick={() => onUnlock(user.id)}>
-                                            <Unlock className="h-4 w-4" />
+                                    {viewingTrash ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                            onClick={() => onRestore?.(user.id)}
+                                        >
+                                            <RotateCcw className="h-4 w-4 mr-2" /> Restore
                                         </Button>
-                                    )}
-
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <span className="sr-only">Open menu</span>
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => onEdit(user)}>
-                                                <Pencil className="mr-2 h-4 w-4" /> Edit Details
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => onResetPassword(user.id)}>
-                                                <KeyRound className="mr-2 h-4 w-4" /> Reset Password
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                className="text-red-600"
-                                                onClick={() => onDelete(user.id)}
+                                    ) : (
+                                        <>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className={user.is_active ? "text-red-600 border-red-200 hover:bg-red-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}
+                                                onClick={() => onToggleStatus(user)}
                                             >
-                                                <Trash2 className="mr-2 h-4 w-4" /> Delete User
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                                {user.is_active ? <UserX className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                                            </Button>
+
+                                            {user.is_locked_out && (
+                                                <Button size="sm" variant="outline" onClick={() => onUnlock(user.id)}>
+                                                    <Unlock className="h-4 w-4" />
+                                                </Button>
+                                            )}
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                        <span className="sr-only">Open menu</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => onEdit(user)}>
+                                                        <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => onResetPassword(user.id)}>
+                                                        <KeyRound className="mr-2 h-4 w-4" /> Reset Password
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-red-600"
+                                                        onClick={() => onDelete(user.id)}
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete User
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </>
+                                    )}
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -385,8 +401,8 @@ export default function UserManagementPage() {
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [roleFilter, setRoleFilter] = useState("all")
-    const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<any | null>(null)
+    const [viewingTrash, setViewingTrash] = useState(false)
 
     const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -421,12 +437,12 @@ export default function UserManagementPage() {
 
     useEffect(() => {
         fetchUsers()
-    }, [])
+    }, [viewingTrash])
 
     const fetchUsers = async () => {
         try {
             setLoading(true)
-            const data = await adminAPI.getUsers()
+            const data = await adminAPI.getUsers(viewingTrash)
             setUsers(data)
         } catch (error) {
             console.error("Failed to fetch users", error)
@@ -462,11 +478,17 @@ export default function UserManagementPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (confirm("Are you sure? This action is logged.")) {
+        if (confirm("Are you sure? This action is logged and will remove the user from active lists.")) {
             try {
                 await adminAPI.deleteUser(id)
-                setUsers(users.filter(u => u.id !== id))
-                toast({ title: "Success", description: "User deleted successfully" })
+                // Filter the UI state
+                setUsers(prevUsers => prevUsers.filter(u => u.id !== id))
+                // Clear editing state if the deleted user was being edited
+                if (editingUser?.id === id) {
+                    setEditingUser(null)
+                    setIsModalOpen(false)
+                }
+                toast({ title: "Success", description: "User removed successfully" })
             } catch (error: any) {
                 toast({
                     variant: "destructive",
@@ -508,6 +530,16 @@ export default function UserManagementPage() {
             toast({ title: "Account Unlocked", description: "User can now attempt to login again." })
         } catch (error: any) {
             toast({ variant: "destructive", title: "Unlock Failed", description: error.message })
+        }
+    }
+
+    const handleRestore = async (id: number) => {
+        try {
+            await adminAPI.restoreUser(id)
+            setUsers(users.filter(u => u.id !== id)) // Remove from Trash list
+            toast({ title: "Restored", description: "User is now active again." })
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: error.message })
         }
     }
 
@@ -555,6 +587,12 @@ export default function UserManagementPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Button
+                        variant={viewingTrash ? "destructive" : "outline"}
+                        onClick={() => setViewingTrash(!viewingTrash)}
+                    >
+                        {viewingTrash ? "View Active Users" : "View Trash / Archive"}
+                    </Button>
                     <Button variant="outline" onClick={handleExport}>
                         <Download className="mr-2 h-4 w-4" /> Export CSV
                     </Button>
@@ -564,23 +602,28 @@ export default function UserManagementPage() {
                 </div>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-lg border-2 border-dashed border-slate-200 text-center">
-                <h3 className="text-lg font-semibold mb-1">Register Multiple Students</h3>
-                <p className="text-sm text-muted-foreground mb-4">Upload a CSV with columns: <strong>email</strong>, <strong>full_name</strong></p>
-
-                <input
-                    type="file"
-                    id="bulk-upload"
-                    className="hidden"
-                    accept=".csv"
-                    onChange={handleBulkUpload}
-                />
-                <Button asChild className="cursor-pointer">
-                    <label htmlFor="bulk-upload">
-                        <Plus className="mr-2 h-4 w-4" /> Select CSV File
-                    </label>
-                </Button>
-            </div>
+            {!viewingTrash && (
+                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-lg border">
+                    <div className="flex gap-4 items-center">
+                        <div className="text-right hidden sm:block">
+                            <p className="text-sm font-semibold">Register Multiple Students</p>
+                            <p className="text-xs text-muted-foreground">Upload a CSV (email, full_name)</p>
+                        </div>
+                        <input
+                            type="file"
+                            id="bulk-upload"
+                            className="hidden"
+                            accept=".csv"
+                            onChange={handleBulkUpload}
+                        />
+                        <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                            <label htmlFor="bulk-upload">
+                                <Plus className="mr-2 h-4 w-4" /> Bulk Upload
+                            </label>
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <Card>
                 <CardHeader>
@@ -618,11 +661,13 @@ export default function UserManagementPage() {
                 <CardContent>
                     <UserTable
                         users={filteredUsers}
+                        viewingTrash={viewingTrash}
                         onEdit={(user) => { setEditingUser(user); setIsModalOpen(true); }}
                         onDelete={handleDelete}
                         onToggleStatus={handleToggleStatus}
                         onResetPassword={handleResetPassword}
                         onUnlock={handleUnlock}
+                        onRestore={handleRestore}
                     />
                 </CardContent>
             </Card>
