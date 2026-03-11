@@ -42,13 +42,14 @@ export default function ContentBankPage() {
     try {
       setLoading(true)
       const data = await adminAPI.getQuestions()
-      setContentItems(data)
-    } catch (error) {
+      // Critical: Check if data is actually an array before saving to state
+      setContentItems(Array.isArray(data) ? data : [])
+    } catch (error: any) {
       console.error("Failed to fetch content", error)
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to load Content Bank."
+        title: "Access Denied",
+        description: "Please log in again to view questions."
       })
     } finally {
       setLoading(false)
