@@ -90,9 +90,9 @@ export function Header() {
               <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 hover:bg-blue-50" asChild>
                 <Link href="/login">Login</Link>
               </Button>
-              <Button size="sm" asChild>
+              {/* <Button size="sm" asChild>
                 <Link href="/register">Register</Link>
-              </Button>
+              </Button> */}
             </div>
           )}
         </nav>

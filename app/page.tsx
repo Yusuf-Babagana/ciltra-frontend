@@ -48,11 +48,11 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" className="h-14 px-8 text-lg font-semibold shadow-lg shadow-primary/25 rounded-full" asChild>
+              {/* <Button size="lg" className="h-14 px-8 text-lg font-semibold shadow-lg shadow-primary/25 rounded-full" asChild>
                 <Link href="/register">
                   Get Certified Now <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
-              </Button>
+              </Button> */}
               <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/50 backdrop-blur-sm border-slate-200 hover:bg-white rounded-full dark:bg-slate-900/50 dark:border-slate-800" asChild>
                 <Link href="/exams">View Requirements</Link>
               </Button>
@@ -216,9 +216,9 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <Button className="w-full h-12 text-lg" asChild>
+                    {/* <Button className="w-full h-12 text-lg" asChild>
                       <Link href="/register">Start Your Application</Link>
-                    </Button>
+                    </Button> */}
                   </CardContent>
                 </Card>
               </div>
