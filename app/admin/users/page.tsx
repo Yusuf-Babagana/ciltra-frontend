@@ -147,10 +147,18 @@ function UserTable({ users, viewingTrash, onEdit, onDelete, onToggleStatus, onRe
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className={user.is_active ? "text-red-600 border-red-200 hover:bg-red-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}
+                                                className={user.is_active 
+                                                  ? "text-amber-600 border-amber-200 hover:bg-amber-50" 
+                                                  : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                                }
                                                 onClick={() => onToggleStatus(user)}
+                                                disabled={user.role === 'admin'}
                                             >
-                                                {user.is_active ? <UserX className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                                                {user.is_active ? (
+                                                  <><UserX className="mr-1 h-4 w-4" /> Suspend</>
+                                                ) : (
+                                                  <><UserCheck className="mr-1 h-4 w-4" /> Activate</>
+                                                )}
                                             </Button>
 
                                             {user.is_locked_out && (
@@ -501,21 +509,34 @@ export default function UserManagementPage() {
         }
     }
 
-    const handleToggleStatus = async (user: any) => {
-        const action = user.is_active ? "suspend" : "activate"
-        if (confirm(`Are you sure you want to ${action} this user?`)) {
-            try {
-                const response = await adminAPI.toggleUserStatus(user.id)
-                if (response) {
-                    // Only update state if the API confirmed success
-                    setUsers(users.map(u => u.id === user.id ? { ...u, is_active: !user.is_active } : u))
-                    toast({ title: "Status Updated", description: `User has been ${action}ed.` })
-                }
-            } catch (error: any) {
-                toast({ variant: "destructive", title: "Error", description: error.message })
-            }
+    const handleToggleSuspend = async (user: any) => {
+        const actionText = user.is_active ? "suspend" : "activate";
+        
+        if (!confirm(`Are you sure you want to ${actionText} ${user.email}?`)) return;
+
+        try {
+            setLoading(true);
+            await adminAPI.toggleUserStatus(user.id);
+            
+            // Update local state so the UI changes immediately
+            setUsers(users.map(u => 
+                u.id === user.id ? { ...u, is_active: !u.is_active } : u
+            ));
+
+            toast({
+                title: "Success",
+                description: `User account has been ${actionText}ed.`,
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Action Failed",
+                description: error.message || "Check server logs for details.",
+            });
+        } finally {
+            setLoading(false);
         }
-    }
+    };
 
     const handleResetPassword = async (id: number) => {
         if (confirm("Reset password for this user? They will receive a new temporary password.")) {
@@ -674,7 +695,7 @@ export default function UserManagementPage() {
                         viewingTrash={viewingTrash}
                         onEdit={(user) => { setEditingUser(user); setIsModalOpen(true); }}
                         onDelete={handleDelete}
-                        onToggleStatus={handleToggleStatus}
+                        onToggleStatus={handleToggleSuspend}
                         onResetPassword={handleResetPassword}
                         onUnlock={handleUnlock}
                         onRestore={handleRestore}
